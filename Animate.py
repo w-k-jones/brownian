@@ -4,6 +4,7 @@ Created on Sat Oct 22 21:02:33 2016
 History:
     22/10/2016: WJ - Created file, replicating matlab script collisiontrial.m
     26/10/2016: LM - fixed array-making bugs, animated properly
+    1/11/2016: WJ - added collision code back in, currently not working properly
 """
 
 import sys
