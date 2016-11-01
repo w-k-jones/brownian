@@ -76,7 +76,7 @@ def step():
     # Define NaN arrays for wall and ball collision times
     t_wall_x = nanarr([tot_balls])
     t_wall_y = nanarr([tot_balls])
-    #t_col = nanarr([tot_balls,tot_balls])
+    t_col = nanarr([tot_balls,tot_balls])
     
     #while t < t_max:
         
@@ -94,7 +94,7 @@ def step():
         if temp >= 0:
             t_wall_y[i] = temp
         
-        """
+        
         # Find collision times between balls
         if i < tot_balls: #probably throw away
             # Loop over all higher index balls to avoid double checking
@@ -109,15 +109,15 @@ def step():
                     temp = np.nanmin([(-b+chk**0.5)/(2*a),(-b-chk**0.5)/(2*a)])
                     if temp > 1E-10:
                         t_col[i,j] = temp
-        """
+        
         
     # Find minimum times to collision from each
     t_x_min = np.nanmin(t_wall_x)
     t_y_min = np.nanmin(t_wall_y)
-    #t_col_min = np.nanmin(t_col)
+    t_col_min = np.nanmin(t_col)
 
     # Find overall minimum time to collision 
-    t_min = np.nanmin([t_x_min,t_y_min]) #[t_x_min,t_y_min,t_col_min]
+    t_min = np.nanmin([t_x_min,t_y_min,t_col_min])
 
     # Check if no collision, if so stop
     if np.isnan(t_min):
@@ -135,36 +135,26 @@ def step():
         #Move balls to collision positions
         p += v*t_min
             
-        if np.sum(t_wall_x == t_min) > 0:
-            print("collision x")
-            v[t_wall_x == t_x_min,0] = -v[t_wall_x == t_x_min,0]
-            wh = np.where(t_wall_x == t_min)
-            ii = wh[0][0]
+           
+    if np.sum(t_wall_x == t_min) > 0:
+        v[t_wall_x == t_x_min,0] = -v[t_wall_x == t_x_min,0]
+        ii = np.where(t_wall_x == t_min)
 
-        if np.sum(t_wall_y == t_min) > 0:
-            print("collision y")
-            v[t_wall_y == t_y_min,1] = -v[t_wall_y == t_y_min,1]
-            wh = np.where(t_wall_y == t_min)
-            ii = wh[0][0]
+    if np.sum(t_wall_y == t_min) > 0:
+        v[t_wall_y == t_y_min,1] = -v[t_wall_y == t_y_min,1]
+        ii = np.where(t_wall_y == t_min)
+
+    if np.sum(t_col == t_min) > 0:
+        ii,jj = np.where(t_col == t_min)
+        for k in range(0,ii.size):
+
+            dij = p[jj[k]]-p[ii[k]]
+            rij = dij/(np.sum(dij**2)**0.5)
             
-        """
-        if np.sum(t_col == t_min) > 0:
-            print("collision balls")
-            wh = np.where(t_col == t_min)
-            num_wh = wh[0].size
-            for k in range(num_wh): #works now I presume?
-                ii = wh[0][i]
-                jj = wh[1][i]
-                
-                dij = p[ii]-p[jj]
-                rij = dij/(np.sum(dij**2)**0.5)
-                    
-                dv = np.sum((v[ii]-v[jj])*rij)*rij
-                    
-                v[ii] = v[ii] + dv
-                v[jj] = v[jj] - dv
-        """
-        print("collision",ii,jj)
+            dv = np.sum((v[ii[k]]-v[jj[k]])*rij)*rij
+            
+            v[ii[k]] = v[ii[k]] - dv
+            v[jj[k]] = v[jj[k]] + dv
         
     return p
         #momentum = np.concatenate((momentum, [np.sum((np.sum(v**2, axis=1)**0.5))]))
