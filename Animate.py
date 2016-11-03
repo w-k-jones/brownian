@@ -3,8 +3,11 @@ Created on Sat Oct 22 21:02:33 2016
 @authors: William Jones & Luc Moseley  
 History:
     22/10/2016: WJ - Created file, replicating matlab script collisiontrial.m
-    26/10/2016: LM - fixed array-making bugs, animated properly
-    1/11/2016: WJ - added collision code back in, currently not working properly
+    26/10/2016: LM - Fixed array-making bugs, animated properly
+    1/11/2016: WJ - Added collision code back in, currently not working properly
+    3/11/2016: WJ - Fixed looping code - would collide regardless after each loop.
+                    Added momentum to collisions so different masses work.
+                    Added size_arr, collisions working but not animation.
 """
 
 import sys
@@ -20,9 +23,9 @@ def nanarr(size):
 
 
 # Defaults for number of balls, ball size and ball mass
-n_balls = np.array([5,20])
-sizes = np.array([0.01,0.02])
-m_balls = np.array([1,1.2])
+n_balls = np.array([30,1])
+sizes = np.array([0.01,0.1])
+m_balls = np.array([1,100])
 
 tot_balls = np.sum(n_balls)
 # TODO: generalise, array form with different numbers of different balls
@@ -39,7 +42,7 @@ for i in range(len(n_balls)):
         
 # Initialise position and velocity of balls
 p = np.random.uniform(low=sizes[0], high=1-sizes[0], size=[tot_balls,2])
-v = np.random.uniform(low=-1, high=1, size=[tot_balls,2]) #low changed to -1
+v = np.random.uniform(low=-0.5, high=0.5, size=[tot_balls,2]) #low changed to -1
 
 # Define number of steps (for plotting) and step length, find max time
 n_steps = 100
@@ -59,90 +62,99 @@ energy = [np.sum((np.sum(v**2, axis=1))/2)]
 
 def step():
     global p,t,t_sim
-    # Define NaN arrays for wall and ball collision times
-    t_wall_x = nanarr([tot_balls])
-    t_wall_y = nanarr([tot_balls])
-    t_col = nanarr([tot_balls,tot_balls])
     
-    #while t < t_max:
-        
-    for i in range(tot_balls):
-        
-        # Find collision times for vertical walls
-        temp = np.nanmax([-(p[i,0]-sizes[0])/v[i,0],-(p[i,0]-1+sizes[0])/v[i,0]]) 
-        #is sizes[0] right?
-        #walls set as 0 & 1 here
-        if temp >= 0:
-            t_wall_x[i] = temp
+    while 1:
+        # Define NaN arrays for wall and ball collision times
+        t_wall_x = nanarr([tot_balls])
+        t_wall_y = nanarr([tot_balls])
+        t_col = nanarr([tot_balls,tot_balls])
     
-        # Find collision times for horizontal walls
-        temp = np.nanmax([-(p[i,1]-sizes[0])/v[i,1],-(p[i,1]-1+sizes[0])/v[i,1]])
-        if temp >= 0:
-            t_wall_y[i] = temp
+        #while t < t_max:
         
+        for i in range(tot_balls):
         
-        # Find collision times between balls
-        if i < tot_balls: #probably throw away
-            # Loop over all higher index balls to avoid double checking
-            for j in range(i+1,tot_balls):
-                # Calculate quadratic coefficients
-                a = np.sum((v[i]-v[j])**2)
-                b = 2*np.sum((v[i]-v[j])*(p[i]-p[j]))
-                c = np.sum((p[i]-p[j])**2-(sizes[0]+sizes[0])**2)
+            # Find collision times for vertical walls
+            temp = np.nanmax([-(p[i,0]-size_arr[i])/v[i,0],-(p[i,0]-1+size_arr[i])/v[i,0]]) 
+            #is sizes[0] right?
+            #walls set as 0 & 1 here
+            if temp >= 0:
+                t_wall_x[i] = temp
+        
+            # Find collision times for horizontal walls
+            temp = np.nanmax([-(p[i,1]-size_arr[i])/v[i,1],-(p[i,1]-1+size_arr[i])/v[i,1]])
+            if temp >= 0:
+                t_wall_y[i] = temp
+            
+            
+            # Find collision times between balls
+            if i < tot_balls: #probably throw away
+                # Loop over all higher index balls to avoid double checking
+                for j in range(i+1,tot_balls):
+                    # Calculate quadratic coefficients
+                    a = np.sum((v[i]-v[j])**2)
+                    b = 2*np.sum((v[i]-v[j])*(p[i]-p[j]))
+                    c = np.sum((p[i]-p[j])**2-(size_arr[i]+size_arr[j])**2)
+                    
+                    chk = b**2 - 4*a*c
+                    if chk >= 0:
+                        temp = np.nanmin([(-b+chk**0.5)/(2*a),(-b-chk**0.5)/(2*a)])
+                        if temp > 1E-10:
+                            t_col[i,j] = temp
+            
+            
+        # Find minimum times to collision from each
+        t_x_min = np.nanmin(t_wall_x)
+        t_y_min = np.nanmin(t_wall_y)
+        t_col_min = np.nanmin(t_col)
+    
+        # Find overall minimum time to collision 
+        t_min = np.nanmin([t_x_min,t_y_min,t_col_min])
+    
+        # Check if no collision, if so stop
+        if np.isnan(t_min):
+            sys.exit("No collisions detected")
+    
+        # Plot every step up to collison time
+        if l_step < t_min:
+            t = t+l_step
+            p += v*l_step
+            return p
                 
-                chk = b**2 - 4*a*c
-                if chk >= 0:
-                    temp = np.nanmin([(-b+chk**0.5)/(2*a),(-b-chk**0.5)/(2*a)])
-                    if temp > 1E-10:
-                        t_col[i,j] = temp
+        else:
+            #update time
+            t += t_min
+    
+            #Move balls to collision positions
+            p += v*t_min
+                
+               
+            if np.sum(t_wall_x == t_min) > 0:
+                v[t_wall_x == t_x_min,0] = -v[t_wall_x == t_x_min,0]
+                ii = np.where(t_wall_x == t_min)
+    
+            if np.sum(t_wall_y == t_min) > 0:
+                v[t_wall_y == t_y_min,1] = -v[t_wall_y == t_y_min,1]
+                jj = np.where(t_wall_y == t_min)
+    
+            
+            if np.sum(t_col == t_min) > 0:
+                kk,ll = np.where(t_col == t_min)
+                for m in range(0,kk.size):
+    
+                    dij = p[ll[m]]-p[kk[m]]
+                    rij = dij/(np.sum(dij**2)**0.5)
+                    dm = m_arr[kk[m]]/m_arr[ll[m]]
+                
+                    ua = np.sum((v[kk[m]]-v[ll[m]])*rij)
+                    
+                    va = ((dm-1)*ua)/(1+dm)
+                    dva = va - ua
+                
+                    v[kk[m]] = v[kk[m]] + dva*rij
+                    v[ll[m]] = v[ll[m]] - dm*dva*rij
+            
         
-        
-    # Find minimum times to collision from each
-    t_x_min = np.nanmin(t_wall_x)
-    t_y_min = np.nanmin(t_wall_y)
-    t_col_min = np.nanmin(t_col)
 
-    # Find overall minimum time to collision 
-    t_min = np.nanmin([t_x_min,t_y_min,t_col_min])
-
-    # Check if no collision, if so stop
-    if np.isnan(t_min):
-        sys.exit("No collisions detected")
-
-    # Plot every step up to collison time
-    if l_step < t_min:
-        t = t+l_step
-        p += v*l_step
-            
-    else:
-        #update time
-        t += t_min
-
-        #Move balls to collision positions
-        p += v*t_min
-            
-           
-    if np.sum(t_wall_x == t_min) > 0:
-        v[t_wall_x == t_x_min,0] = -v[t_wall_x == t_x_min,0]
-        ii = np.where(t_wall_x == t_min)
-
-    if np.sum(t_wall_y == t_min) > 0:
-        v[t_wall_y == t_y_min,1] = -v[t_wall_y == t_y_min,1]
-        ii = np.where(t_wall_y == t_min)
-
-    if np.sum(t_col == t_min) > 0:
-        ii,jj = np.where(t_col == t_min)
-        for k in range(0,ii.size):
-
-            dij = p[jj[k]]-p[ii[k]]
-            rij = dij/(np.sum(dij**2)**0.5)
-            
-            dv = np.sum((v[ii[k]]-v[jj[k]])*rij)*rij
-            
-            v[ii[k]] = v[ii[k]] - dv
-            v[jj[k]] = v[jj[k]] + dv
-        
-    return p
         #momentum = np.concatenate((momentum, [np.sum((np.sum(v**2, axis=1)**0.5))]))
         #energy = np.concatenate((energy, [np.sum((np.sum(v**2, axis=1))/2)]))
     
