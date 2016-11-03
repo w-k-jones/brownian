@@ -36,21 +36,6 @@ for i in range(len(n_balls)):
         m_arr = np.concatenate((m_arr, np.full(n_balls[i], m_balls[i])))
 # NOTE: this is a pretty inefficient way of doing things, should inialise an
 #   array length of total(n_balls) first and then assign values.
-
-#you say this is inefficient, but the way you suggest (below) actually takes
-#   longer -- I timed it with %timeit and the original is roughly 33% faster
-
-"""
-size_arr = nanarr(tot_balls)
-m_arr = nanarr(tot_balls)
-for i in range(len(n_balls)):
-    if i == 0:
-        size_arr[: n_balls[i]] = sizes[i]
-        m_arr[: n_balls[i]] = m_balls[i]
-    else:
-        size_arr[sum(n_balls[:i]): sum(n_balls[:i+1])] = sizes[i]
-        m_arr[sum(n_balls[:i]): sum(n_balls[:i+1])] = m_balls[i]
-"""
         
 # Initialise position and velocity of balls
 p = np.random.uniform(low=sizes[0], high=1-sizes[0], size=[tot_balls,2])
