@@ -8,6 +8,8 @@ History:
     3/11/2016: WJ - Fixed looping code - would collide regardless after each loop.
                     Added momentum to collisions so different masses work.
                     Added size_arr, collisions working but not animation.
+    8/11/2016: LM - Made marker size vary according to ball size
+                    Balls are overlapping walls and sometimes each other
 """
 
 import sys
@@ -23,25 +25,25 @@ def nanarr(size):
 
 
 # Defaults for number of balls, ball size and ball mass
-n_balls = np.array([30,1])
-sizes = np.array([0.01,0.1])
-m_balls = np.array([1,100])
+n_balls = np.array([2,2])
+radii = np.array([0.05,0.1])
+m_balls = np.array([100,100])
 
 tot_balls = np.sum(n_balls)
 # TODO: generalise, array form with different numbers of different balls
 
 for i in range(len(n_balls)):
     if i == 0:
-        size_arr = np.full(n_balls[0], sizes[0])
+        size_arr = np.full(n_balls[0], radii[0])
         m_arr = np.full(n_balls[0], m_balls[0])
     else:
-        size_arr = np.concatenate((size_arr, np.full(n_balls[i], sizes[i])))
+        size_arr = np.concatenate((size_arr, np.full(n_balls[i], radii[i])))
         m_arr = np.concatenate((m_arr, np.full(n_balls[i], m_balls[i])))
 # NOTE: this is a pretty inefficient way of doing things, should inialise an
 #   array length of total(n_balls) first and then assign values.
         
 # Initialise position and velocity of balls
-p = np.random.uniform(low=sizes[0], high=1-sizes[0], size=[tot_balls,2])
+p = np.random.uniform(low=radii[0], high=1-radii[0], size=[tot_balls,2])
 v = np.random.uniform(low=-0.5, high=0.5, size=[tot_balls,2]) #low changed to -1
 
 # Define number of steps (for plotting) and step length, find max time
@@ -75,7 +77,6 @@ def step():
         
             # Find collision times for vertical walls
             temp = np.nanmax([-(p[i,0]-size_arr[i])/v[i,0],-(p[i,0]-1+size_arr[i])/v[i,0]]) 
-            #is sizes[0] right?
             #walls set as 0 & 1 here
             if temp >= 0:
                 t_wall_x[i] = temp
@@ -139,7 +140,7 @@ def step():
             
             if np.sum(t_col == t_min) > 0:
                 kk,ll = np.where(t_col == t_min)
-                for m in range(0,kk.size):
+                for m in range(kk.size):
     
                     dij = p[ll[m]]-p[kk[m]]
                     rij = dij/(np.sum(dij**2)**0.5)
@@ -158,12 +159,16 @@ def step():
         #momentum = np.concatenate((momentum, [np.sum((np.sum(v**2, axis=1)**0.5))]))
         #energy = np.concatenate((energy, [np.sum((np.sum(v**2, axis=1))/2)]))
     
-fig = plt.figure()
+fig = plt.figure(figsize=(11,11))
 # Limits manually entered as 0 & 1 for now, should be whatever box limits we set
-ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, xlim=(-0.5, 1.5), ylim=(-0.2, 1.2))
+ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, xlim=(-0.5, 1.5), ylim=(-0.5, 1.5))
 
 # Enter the locations of the particles (size manually =5. should be proportional to size)
 particles, = ax.plot([], [], 'bo', ms=5.)
+if len(radii) > 1:
+    particles1, = ax.plot([], [], 'bo', ms=10.)
+if len(radii) > 2:
+    particles2, = ax.plot([], [], 'bo', ms=15.)
 time_text = ax.text(0.02, 0.93, '', transform=ax.transAxes)
 
 #Make box boundary (manually set for now, should automate later)
@@ -175,8 +180,19 @@ ax.add_patch(rect)
 def init():
     global rect
     particles.set_data([], [])
+    if len(radii) > 1:
+        particles1.set_data([], [])
+    if len(radii) > 2:
+        particles2.set_data([], [])
+    
     time_text.set_text('')
-    return particles, time_text, rect
+    
+    if len(radii) == 1:
+        return particles, time_text, rect
+    elif len(radii) == 2:
+        return particles, particles1, time_text, rect
+    else:
+        return particles, particles1, particles2, time_text, rect
 
 # Perform animation step
 def animate(i):
@@ -187,20 +203,26 @@ def animate(i):
 
     #set marker size based on ball size
     #this size is only appropraite if width of figure = 2 (needs work)
-    ms = int(fig.dpi * fig.get_figwidth() * sizes[0])
+    ms = int(fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[0])
     particles.set_markersize(ms)
-    
-    # set position at each step
-    particles.set_data(p[:, 0], p[:, 1])
+    particles.set_data(p[0:n_balls[0], 0], p[0:n_balls[0], 1])
+    if len(radii) > 1:
+        ms1 = int(fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[1])
+        particles1.set_markersize(ms1)
+        particles1.set_data(p[n_balls[0]:sum(n_balls[0:2]), 0], p[n_balls[0]:sum(n_balls[0:2]), 1])
+    if len(radii) > 2:
+        ms2 = int(fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[2])
+        particles2.set_markersize(ms2)
+        particles2.set_data(p[sum(n_balls[0:2]):sum(n_balls[0:3]), 0], p[sum(n_balls[0:2]):sum(n_balls[0:3]), 1])
     time_text.set_text('time = %.1f s' % t)
-    return particles, time_text,rect
+    
+    if len(radii) == 1:
+        return particles, time_text, rect
+    elif len(radii) == 2:
+        return particles, particles1, time_text, rect
+    else:
+        return particles, particles1, particles2, time_text, rect
 
 ani = animation.FuncAnimation(fig, animate, frames=600, interval=10, blit=True, init_func=init)
                               
 plt.show()
-
-#print(momentum)
-#print(energy)
-#x = np.arange(0,momentum.size)
-#plt.plot(x,momentum,'b-',x,energy,'r-')
-#plt.show
