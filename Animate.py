@@ -26,7 +26,7 @@ def nanarr(size):
 
 
 # Defaults for number of balls, ball size and ball mass
-n_balls = np.array([2,2])
+n_balls = np.array([25,6])
 radii = np.array([0.05,0.1])
 m_balls = np.array([100,100])
 
@@ -44,8 +44,8 @@ for i in range(len(n_balls)):
 #   array length of total(n_balls) first and then assign values.
         
 # Initialise position and velocity of balls
-p = np.random.uniform(low=radii[0], high=1-radii[0], size=[tot_balls,2])
-v = np.random.uniform(low=-0.5, high=0.5, size=[tot_balls,2]) #low changed to -1
+p = np.random.uniform(low=radii[0], high=1-radii[0], size=[tot_balls,2]) #positions need to account for walls
+v = np.random.uniform(low=-0.5, high=0.5, size=[tot_balls,2])
 
 # Define number of steps (for plotting) and step length, find max time
 n_steps = 100
@@ -62,6 +62,8 @@ jj = 0
 # Find initial momnetum and energy
 momentum = [np.sum((np.sum(v**2, axis=1)**0.5))]
 energy = np.sum((np.sum(v**2, axis=1)*m_arr)/2)
+pressure = 0 #the updates of these are all 0 :/
+c_mv = 0
 
 class Container:
     def __init__(self):
@@ -80,7 +82,7 @@ walls = Container()
 walls.rect([0,1.5],[2,0])
 
 def step():
-    global p,t,t_sim
+    global p, t, energy, pressure, c_mv
     
     # Define NaN arrays for wall and ball collision times
     t_wall_x = nanarr([tot_balls])
@@ -132,7 +134,14 @@ def step():
     if l_step < t_min:
         t = t+l_step
         p += v*l_step
-        return p
+        
+        #calc change in momentum in l_step
+        pressure = c_mv * l_step # =0?
+        c_mv = 0 #resets very quickly relative to display
+        energy = np.sum((np.sum(v**2, axis=1)*m_arr)/2)
+        #cm_v is an array?!
+        
+        return p, energy, pressure
             
     else:
         #update time
@@ -145,10 +154,15 @@ def step():
         if np.sum(t_wall_x == t_min) > 0:
             v[t_wall_x == t_x_min,0] = -v[t_wall_x == t_x_min,0]
             ii = np.where(t_wall_x == t_min)
+            #find momentum add
+            for x in ii:
+                c_mv += sum(m_arr[x]*(sum(v[x]**2)**0.5)) #not sure right
 
         if np.sum(t_wall_y == t_min) > 0:
             v[t_wall_y == t_y_min,1] = -v[t_wall_y == t_y_min,1]
             jj = np.where(t_wall_y == t_min)
+            for x in jj:
+                c_mv += sum(m_arr[x]*(sum(v[x]**2)**0.5))
 
         
         if np.sum(t_col == t_min) > 0:
@@ -168,7 +182,6 @@ def step():
                 v[ll[m]] = v[ll[m]] - dm*dva*rij
 
     #momentum = np.concatenate((momentum, [np.sum((np.sum(v**2, axis=1)**0.5))]))
-    energy = np.sum((np.sum(v**2, axis=1)*m_arr)/2)
     
 fig = plt.figure(figsize=(6,6))
 ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, 
@@ -182,6 +195,7 @@ if len(radii) > 2:
     particles2, = ax.plot([], [], 'bo', ms=15.)
 time_text = ax.text(0.025, 0.93, '', transform=ax.transAxes)
 energy_text = ax.text(0.025, 0.88, '', transform=ax.transAxes)
+pressure_text = ax.text(0.025, 0.83, '', transform=ax.transAxes)
 
 #Make box boundary (manually set for now, should automate later)
 rect = plt.Rectangle([walls.x_v[0],walls.y_v[0]], walls.x_v[1], walls.y_v[1], lw=2, fc='none')
@@ -199,13 +213,14 @@ def init():
     
     time_text.set_text('')
     energy_text.set_text('')
+    pressure_text.set_text('')
     
     if len(radii) == 1:
-        return particles, time_text, rect
+        return particles, time_text, energy_text, pressure_text, rect
     elif len(radii) == 2:
-        return particles, particles1, time_text, rect
+        return particles, particles1, time_text, energy_text, pressure_text, rect
     else:
-        return particles, particles1, particles2, time_text, energy_text, rect
+        return particles, particles1, particles2, time_text, energy_text, pressure_text, rect
 
 # Perform animation step
 def animate(i):
@@ -229,13 +244,14 @@ def animate(i):
         particles2.set_data(p[sum(n_balls[0:2]):sum(n_balls[0:3]), 0], p[sum(n_balls[0:2]):sum(n_balls[0:3]), 1])
     time_text.set_text('Time = %.1f s' % t)
     energy_text.set_text('Energy = %.2f J' % energy)
+    pressure_text.set_text('Pressure = %.2f Pa' % pressure)
     
     if len(radii) == 1:
-        return particles, time_text, energy_text, rect
+        return particles, time_text, energy_text, pressure_text, rect
     elif len(radii) == 2:
-        return particles, particles1, time_text, energy_text, rect
+        return particles, particles1, time_text, energy_text, pressure_text, rect
     else:
-        return particles, particles1, particles2, time_text, energy_text, rect
+        return particles, particles1, particles2, time_text, energy_text, pressure_text, rect
 
 ani = animation.FuncAnimation(fig, animate, frames=600, interval=10, blit=True, init_func=init)
                               
