@@ -10,7 +10,7 @@ History:
                     Added size_arr, collisions working but not animation.
     8/11/2016: LM - Made marker size vary according to ball size
                     Balls are overlapping walls and sometimes each other
-    9/11/2016: LM - Made box class and walls use this class
+    9/11/2016: LM - Made box class and walls use this class, added energy check
 """
 
 import sys
@@ -61,7 +61,7 @@ jj = 0
 
 # Find initial momnetum and energy
 momentum = [np.sum((np.sum(v**2, axis=1)**0.5))]
-energy = [np.sum((np.sum(v**2, axis=1))/2)]
+energy = np.sum((np.sum(v**2, axis=1)*m_arr)/2)
 
 class Container:
     def __init__(self):
@@ -166,11 +166,9 @@ def step():
             
                 v[kk[m]] = v[kk[m]] + dva*rij
                 v[ll[m]] = v[ll[m]] - dm*dva*rij
-        
-    
 
     #momentum = np.concatenate((momentum, [np.sum((np.sum(v**2, axis=1)**0.5))]))
-    #energy = np.concatenate((energy, [np.sum((np.sum(v**2, axis=1))/2)]))
+    energy = np.sum((np.sum(v**2, axis=1)*m_arr)/2)
     
 fig = plt.figure(figsize=(6,6))
 ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, 
@@ -182,10 +180,11 @@ if len(radii) > 1:
     particles1, = ax.plot([], [], 'bo', ms=10.)
 if len(radii) > 2:
     particles2, = ax.plot([], [], 'bo', ms=15.)
-time_text = ax.text(0.02, 0.93, '', transform=ax.transAxes)
+time_text = ax.text(0.025, 0.93, '', transform=ax.transAxes)
+energy_text = ax.text(0.025, 0.88, '', transform=ax.transAxes)
 
 #Make box boundary (manually set for now, should automate later)
-rect = plt.Rectangle([min(walls.x_v),min(walls.y_v)], max(walls.x_v), max(walls.y_v), lw=2, fc='none')
+rect = plt.Rectangle([walls.x_v[0],walls.y_v[0]], walls.x_v[1], walls.y_v[1], lw=2, fc='none')
 
 ax.add_patch(rect)
 
@@ -199,13 +198,14 @@ def init():
         particles2.set_data([], [])
     
     time_text.set_text('')
+    energy_text.set_text('')
     
     if len(radii) == 1:
         return particles, time_text, rect
     elif len(radii) == 2:
         return particles, particles1, time_text, rect
     else:
-        return particles, particles1, particles2, time_text, rect
+        return particles, particles1, particles2, time_text, energy_text, rect
 
 # Perform animation step
 def animate(i):
@@ -227,14 +227,15 @@ def animate(i):
         ms2 = fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[2]
         particles2.set_markersize(ms2)
         particles2.set_data(p[sum(n_balls[0:2]):sum(n_balls[0:3]), 0], p[sum(n_balls[0:2]):sum(n_balls[0:3]), 1])
-    time_text.set_text('time = %.1f s' % t)
+    time_text.set_text('Time = %.1f s' % t)
+    energy_text.set_text('Energy = %.2f J' % energy)
     
     if len(radii) == 1:
-        return particles, time_text, rect
+        return particles, time_text, energy_text, rect
     elif len(radii) == 2:
-        return particles, particles1, time_text, rect
+        return particles, particles1, time_text, energy_text, rect
     else:
-        return particles, particles1, particles2, time_text, rect
+        return particles, particles1, particles2, time_text, energy_text, rect
 
 ani = animation.FuncAnimation(fig, animate, frames=600, interval=10, blit=True, init_func=init)
                               
