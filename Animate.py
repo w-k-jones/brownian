@@ -10,6 +10,7 @@ History:
                     Added size_arr, collisions working but not animation.
     8/11/2016: LM - Made marker size vary according to ball size
                     Balls are overlapping walls and sometimes each other
+    9/11/2016: LM - Made box class and walls use this class
 """
 
 import sys
@@ -62,108 +63,120 @@ jj = 0
 momentum = [np.sum((np.sum(v**2, axis=1)**0.5))]
 energy = [np.sum((np.sum(v**2, axis=1))/2)]
 
+class Container:
+    def __init__(self):
+        self.x_v = 0
+        self.y_v = 0
+        
+    def rect(self, x_vertices, y_vertices):
+        """input x-positions of vertical walls, y-positions of horizontal as lists"""
+        
+        self.x_v = np.asarray(x_vertices)
+        self.y_v = np.asarray(y_vertices)
+        self.x_v.sort()
+        self.y_v.sort()
+        
+walls = Container()
+walls.rect([0,1.5],[2,0])
+
 def step():
     global p,t,t_sim
     
-    while 1:
-        # Define NaN arrays for wall and ball collision times
-        t_wall_x = nanarr([tot_balls])
-        t_wall_y = nanarr([tot_balls])
-        t_col = nanarr([tot_balls,tot_balls])
+    # Define NaN arrays for wall and ball collision times
+    t_wall_x = nanarr([tot_balls])
+    t_wall_y = nanarr([tot_balls])
+    t_col = nanarr([tot_balls,tot_balls])
     
-        #while t < t_max:
+    for i in range(tot_balls):
         
-        for i in range(tot_balls):
+        # Find collision times for vertical walls
+        temp = np.nanmax([(walls.x_v[0]-p[i,0]+size_arr[i])/v[i,0],(walls.x_v[1]-p[i,0]-size_arr[i])/v[i,0]]) 
+        #walls set as 0 & 1 here
+        if temp >= 0:
+            t_wall_x[i] = temp
         
-            # Find collision times for vertical walls
-            temp = np.nanmax([-(p[i,0]-size_arr[i])/v[i,0],-(p[i,0]-1+size_arr[i])/v[i,0]]) 
-            #walls set as 0 & 1 here
-            if temp >= 0:
-                t_wall_x[i] = temp
-        
-            # Find collision times for horizontal walls
-            temp = np.nanmax([-(p[i,1]-size_arr[i])/v[i,1],-(p[i,1]-1+size_arr[i])/v[i,1]])
-            if temp >= 0:
-                t_wall_y[i] = temp
+        # Find collision times for horizontal walls
+        temp = np.nanmax([-(p[i,1]-walls.y_v[0]-size_arr[i])/v[i,1],-(p[i,1]-walls.y_v[1]+size_arr[i])/v[i,1]])
+        if temp >= 0:
+            t_wall_y[i] = temp
             
             
-            # Find collision times between balls
-            if i < tot_balls: #probably throw away
-                # Loop over all higher index balls to avoid double checking
-                for j in range(i+1,tot_balls):
-                    # Calculate quadratic coefficients
-                    a = np.sum((v[i]-v[j])**2)
-                    b = 2*np.sum((v[i]-v[j])*(p[i]-p[j]))
-                    c = np.sum((p[i]-p[j])**2-(size_arr[i]+size_arr[j])**2)
-                    
-                    chk = b**2 - 4*a*c
-                    if chk >= 0:
-                        temp = np.nanmin([(-b+chk**0.5)/(2*a),(-b-chk**0.5)/(2*a)])
-                        if temp > 1E-10:
-                            t_col[i,j] = temp
+        # Find collision times between balls
+        # Loop over all higher index balls to avoid double checking
+        for j in range(i+1,tot_balls):
+            # Calculate quadratic coefficients
+            a = np.sum((v[i]-v[j])**2)
+            b = 2*np.sum((v[i]-v[j])*(p[i]-p[j]))
+            c = np.sum((p[i]-p[j])**2-(size_arr[i]+size_arr[j])**2)
+            
+            chk = b**2 - 4*a*c
+            if chk >= 0:
+                temp = np.nanmin([(-b+chk**0.5)/(2*a),(-b-chk**0.5)/(2*a)])
+                if temp > 1E-10:
+                    t_col[i,j] = temp
             
             
-        # Find minimum times to collision from each
-        t_x_min = np.nanmin(t_wall_x)
-        t_y_min = np.nanmin(t_wall_y)
-        t_col_min = np.nanmin(t_col)
-    
-        # Find overall minimum time to collision 
-        t_min = np.nanmin([t_x_min,t_y_min,t_col_min])
-    
-        # Check if no collision, if so stop
-        if np.isnan(t_min):
-            sys.exit("No collisions detected")
-    
-        # Plot every step up to collison time
-        if l_step < t_min:
-            t = t+l_step
-            p += v*l_step
-            return p
-                
-        else:
-            #update time
-            t += t_min
-    
-            #Move balls to collision positions
-            p += v*t_min
-                
-               
-            if np.sum(t_wall_x == t_min) > 0:
-                v[t_wall_x == t_x_min,0] = -v[t_wall_x == t_x_min,0]
-                ii = np.where(t_wall_x == t_min)
-    
-            if np.sum(t_wall_y == t_min) > 0:
-                v[t_wall_y == t_y_min,1] = -v[t_wall_y == t_y_min,1]
-                jj = np.where(t_wall_y == t_min)
-    
-            
-            if np.sum(t_col == t_min) > 0:
-                kk,ll = np.where(t_col == t_min)
-                for m in range(kk.size):
-    
-                    dij = p[ll[m]]-p[kk[m]]
-                    rij = dij/(np.sum(dij**2)**0.5)
-                    dm = m_arr[kk[m]]/m_arr[ll[m]]
-                
-                    ua = np.sum((v[kk[m]]-v[ll[m]])*rij)
-                    
-                    va = ((dm-1)*ua)/(1+dm)
-                    dva = va - ua
-                
-                    v[kk[m]] = v[kk[m]] + dva*rij
-                    v[ll[m]] = v[ll[m]] - dm*dva*rij
-            
-        
+    # Find minimum times to collision from each
+    t_x_min = np.nanmin(t_wall_x)
+    t_y_min = np.nanmin(t_wall_y)
+    t_col_min = np.nanmin(t_col)
 
-        #momentum = np.concatenate((momentum, [np.sum((np.sum(v**2, axis=1)**0.5))]))
-        #energy = np.concatenate((energy, [np.sum((np.sum(v**2, axis=1))/2)]))
-    
-fig = plt.figure(figsize=(11,11))
-# Limits manually entered as 0 & 1 for now, should be whatever box limits we set
-ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, xlim=(-0.5, 1.5), ylim=(-0.5, 1.5))
+    # Find overall minimum time to collision 
+    t_min = np.nanmin([t_x_min,t_y_min,t_col_min])
 
-# Enter the locations of the particles (size manually =5. should be proportional to size)
+    # Check if no collision, if so stop
+    if np.isnan(t_min):
+        sys.exit("No collisions detected")
+
+    # Plot every step up to collison time
+    if l_step < t_min:
+        t = t+l_step
+        p += v*l_step
+        return p
+            
+    else:
+        #update time
+        t += t_min
+
+        #Move balls to collision positions
+        p += v*t_min
+            
+           
+        if np.sum(t_wall_x == t_min) > 0:
+            v[t_wall_x == t_x_min,0] = -v[t_wall_x == t_x_min,0]
+            ii = np.where(t_wall_x == t_min)
+
+        if np.sum(t_wall_y == t_min) > 0:
+            v[t_wall_y == t_y_min,1] = -v[t_wall_y == t_y_min,1]
+            jj = np.where(t_wall_y == t_min)
+
+        
+        if np.sum(t_col == t_min) > 0:
+            kk,ll = np.where(t_col == t_min)
+            for m in range(kk.size):
+
+                dij = p[ll[m]]-p[kk[m]]
+                rij = dij/(np.sum(dij**2)**0.5)
+                dm = m_arr[kk[m]]/m_arr[ll[m]]
+            
+                ua = np.sum((v[kk[m]]-v[ll[m]])*rij)
+                
+                va = ((dm-1)*ua)/(1+dm)
+                dva = va - ua
+            
+                v[kk[m]] = v[kk[m]] + dva*rij
+                v[ll[m]] = v[ll[m]] - dm*dva*rij
+        
+    
+
+    #momentum = np.concatenate((momentum, [np.sum((np.sum(v**2, axis=1)**0.5))]))
+    #energy = np.concatenate((energy, [np.sum((np.sum(v**2, axis=1))/2)]))
+    
+fig = plt.figure(figsize=(6,6))
+ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, 
+        xlim=(min(walls.x_v)-1, max(walls.x_v)+1), ylim=(min(walls.x_v)-1, max(walls.y_v)+1))
+
+# Enter the locations of the particles
 particles, = ax.plot([], [], 'bo', ms=5.)
 if len(radii) > 1:
     particles1, = ax.plot([], [], 'bo', ms=10.)
@@ -172,7 +185,7 @@ if len(radii) > 2:
 time_text = ax.text(0.02, 0.93, '', transform=ax.transAxes)
 
 #Make box boundary (manually set for now, should automate later)
-rect = plt.Rectangle([0,0], 1, 1, lw=2, fc='none')
+rect = plt.Rectangle([min(walls.x_v),min(walls.y_v)], max(walls.x_v), max(walls.y_v), lw=2, fc='none')
 
 ax.add_patch(rect)
 
@@ -202,16 +215,16 @@ def animate(i):
     step()
 
     #set marker size based on ball size
-    #this size is only appropraite if width of figure = 2 (needs work)
-    ms = int(fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[0])
+    ms = fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[0]
     particles.set_markersize(ms)
     particles.set_data(p[0:n_balls[0], 0], p[0:n_balls[0], 1])
     if len(radii) > 1:
-        ms1 = int(fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[1])
+        ms1 = fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[1]
         particles1.set_markersize(ms1)
+        particles1.set_markerfacecolor('r')
         particles1.set_data(p[n_balls[0]:sum(n_balls[0:2]), 0], p[n_balls[0]:sum(n_balls[0:2]), 1])
     if len(radii) > 2:
-        ms2 = int(fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[2])
+        ms2 = fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[2]
         particles2.set_markersize(ms2)
         particles2.set_data(p[sum(n_balls[0:2]):sum(n_balls[0:3]), 0], p[sum(n_balls[0:2]):sum(n_balls[0:3]), 1])
     time_text.set_text('time = %.1f s' % t)
