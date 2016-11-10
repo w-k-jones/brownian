@@ -55,6 +55,15 @@ class Container:
         self.x_v.sort()
         self.y_v.sort()
         
+    def sawtooth(self, vertices_array, tooth_width):
+        """input two vertices to create wall between as list [[Xo,Yo],[X1,Y1]]
+        and width per triangular tooth (e.g. ~0.05)"""
+        
+        self.width = np.asarray(tooth_width)
+        self.height = self.width
+        #self.x_v = np.concatenate((vertices_array[i,0] for i in range(len(vertices_array))))
+        #self.y_v = np.concatenate((vertices_array[i,1] for i in range(len(vertices_array))))
+        
 walls = Container()
 walls.rect([0,1.5],[2,0])
         
@@ -83,10 +92,11 @@ energy = np.sum((np.sum(v**2, axis=1)*m_arr)/2)
 #start pressure counter and pressure at 0
 pressure = 0
 press_temp = 0
+avg_press = 0
 press1 = []
 
 def step():
-    global p, t, energy, pressure, press_temp, press1
+    global p, t, energy, pressure, avg_press, press_temp, press1
     
     # Define NaN arrays for wall and ball collision times
     t_wall_x = nanarr([tot_balls])
@@ -139,13 +149,18 @@ def step():
         t = t+l_step
         p += v*l_step
         
-        #calc change in momentum in l_step
+        #calculate pressure over last 100 l_steps if 100 have been taken
         press1.append(press_temp)
-        pressure = np.sum(press1) / len(press1)
-        press_temp = 0 #resets very quickly relative to display
+        if len(press1) < 100:
+            pressure = np.sum(press1) / len(press1)
+        else:
+            pressure = np.sum(press1[len(press1):len(press1)-101:-1]) / 100.
+        avg_press = np.sum(press1) / len(press1)
+        press_temp = 0
+        
         energy = np.sum((np.sum(v**2, axis=1)*m_arr)/2)
         
-        return p, energy, pressure
+        return p, energy, pressure, avg_press
             
     else:
         #update time
@@ -184,8 +199,6 @@ def step():
             
                 v[kk[m]] = v[kk[m]] + dva*rij
                 v[ll[m]] = v[ll[m]] - dm*dva*rij
-
-    #momentum = np.concatenate((momentum, [np.sum((np.sum(v**2, axis=1)**0.5))]))
     
 fig = plt.figure(figsize=(6,6))
 ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, 
@@ -200,6 +213,7 @@ if len(radii) > 2:
 time_text = ax.text(0.025, 0.93, '', transform=ax.transAxes)
 energy_text = ax.text(0.025, 0.88, '', transform=ax.transAxes)
 pressure_text = ax.text(0.025, 0.83, '', transform=ax.transAxes)
+avg_press_text = ax.text(0.025, 0.78, '', transform=ax.transAxes)
 
 #Make box boundary (manually set for now, should automate later)
 rect = plt.Rectangle([walls.x_v[0],walls.y_v[0]], walls.x_v[1], walls.y_v[1], lw=2, fc='none')
@@ -218,13 +232,14 @@ def init():
     time_text.set_text('')
     energy_text.set_text('')
     pressure_text.set_text('')
+    avg_press_text.set_text('')
     
     if len(radii) == 1:
-        return particles, time_text, energy_text, pressure_text, rect
+        return particles, time_text, energy_text, pressure_text, avg_press_text, rect
     elif len(radii) == 2:
-        return particles, particles1, time_text, energy_text, pressure_text, rect
+        return particles, particles1, time_text, energy_text, pressure_text, avg_press_text, rect
     else:
-        return particles, particles1, particles2, time_text, energy_text, pressure_text, rect
+        return particles, particles1, particles2, time_text, energy_text, pressure_text, avg_press_text, rect
 
 # Perform animation step
 def animate(i):
@@ -246,16 +261,18 @@ def animate(i):
         ms2 = fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[2]
         particles2.set_markersize(ms2)
         particles2.set_data(p[sum(n_balls[0:2]):sum(n_balls[0:3]), 0], p[sum(n_balls[0:2]):sum(n_balls[0:3]), 1])
+        
     time_text.set_text('Time = %.1f s' % t)
     energy_text.set_text('Energy = %.2f J' % energy)
-    pressure_text.set_text('Pressure = %.3f Pa' % pressure)
+    pressure_text.set_text('Pressure = %.2f mPa' % (pressure*1000.))
+    avg_press_text.set_text('Average Pressure = %.1f mPa' % (avg_press*1000.))
     
     if len(radii) == 1:
-        return particles, time_text, energy_text, pressure_text, rect
+        return particles, time_text, energy_text, pressure_text, avg_press_text, rect
     elif len(radii) == 2:
-        return particles, particles1, time_text, energy_text, pressure_text, rect
+        return particles, particles1, time_text, energy_text, pressure_text, avg_press_text, rect
     else:
-        return particles, particles1, particles2, time_text, energy_text, pressure_text, rect
+        return particles, particles1, particles2, time_text, energy_text, pressure_text, avg_press_text, rect
 
 ani = animation.FuncAnimation(fig, animate, frames=600, interval=10, blit=True, init_func=init)
                               
