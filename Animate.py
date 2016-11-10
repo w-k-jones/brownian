@@ -47,11 +47,11 @@ class Container:
         self.x_v = 0
         self.y_v = 0
         
-    def rect(self, x_vertices, y_vertices):
-        """input x-positions of vertical walls, y-positions of horizontal as lists"""
+    def rect(self, vertices_array):
+        """input two vertices corresponding to opposite corners of rectangle as list [[Xo,Yo],[X1,Y1]]"""
         
-        self.x_v = np.asarray(x_vertices)
-        self.y_v = np.asarray(y_vertices)
+        self.x_v = np.asarray(vertices_array)[:,0]
+        self.y_v = np.asarray(vertices_array)[:,1]
         self.x_v.sort()
         self.y_v.sort()
         
@@ -61,11 +61,13 @@ class Container:
         
         self.width = np.asarray(tooth_width)
         self.height = self.width
-        #self.x_v = np.concatenate((vertices_array[i,0] for i in range(len(vertices_array))))
-        #self.y_v = np.concatenate((vertices_array[i,1] for i in range(len(vertices_array))))
+        self.x_v = np.asarray(vertices_array)[:,0]
+        self.y_v = np.asarray(vertices_array)[:,1]
+        
+        
         
 walls = Container()
-walls.rect([0,1.5],[2,0])
+walls.rect([[0,0],[1.5,2]])
         
 # Initialise position and velocity of balls
 p1 = np.random.uniform(low=walls.x_v[0]+max(radii), high=walls.x_v[1]-max(radii), size=[tot_balls,1])
