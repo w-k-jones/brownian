@@ -11,6 +11,7 @@ History:
     8/11/2016: LM - Made marker size vary according to ball size
                     Balls are overlapping walls and sometimes each other
     9/11/2016: LM - Made box class and walls use this class, added energy check
+    10/11/12016: LM - Put in pressure read for animation
 """
 
 import sys
@@ -27,8 +28,8 @@ def nanarr(size):
 
 # Defaults for number of balls, ball size and ball mass
 n_balls = np.array([25,6])
-radii = np.array([0.05,0.1])
-m_balls = np.array([100,100])
+radii = np.array([0.01,0.1])
+m_balls = np.array([10,100])
 
 tot_balls = np.sum(n_balls)
 # TODO: generalise, array form with different numbers of different balls
@@ -40,11 +41,27 @@ for i in range(len(n_balls)):
     else:
         size_arr = np.concatenate((size_arr, np.full(n_balls[i], radii[i])))
         m_arr = np.concatenate((m_arr, np.full(n_balls[i], m_balls[i])))
-# NOTE: this is a pretty inefficient way of doing things, should inialise an
-#   array length of total(n_balls) first and then assign values.
+
+class Container:
+    def __init__(self):
+        self.x_v = 0
+        self.y_v = 0
+        
+    def rect(self, x_vertices, y_vertices):
+        """input x-positions of vertical walls, y-positions of horizontal as lists"""
+        
+        self.x_v = np.asarray(x_vertices)
+        self.y_v = np.asarray(y_vertices)
+        self.x_v.sort()
+        self.y_v.sort()
+        
+walls = Container()
+walls.rect([0,1.5],[2,0])
         
 # Initialise position and velocity of balls
-p = np.random.uniform(low=radii[0], high=1-radii[0], size=[tot_balls,2]) #positions need to account for walls
+p1 = np.random.uniform(low=walls.x_v[0]+max(radii), high=walls.x_v[1]-max(radii), size=[tot_balls,1])
+p2 = np.random.uniform(low=walls.y_v[0]+max(radii), high=walls.y_v[1]-max(radii), size=[tot_balls,1])
+p = np.concatenate((p1,p2), axis=1)
 v = np.random.uniform(low=-0.5, high=0.5, size=[tot_balls,2])
 
 # Define number of steps (for plotting) and step length, find max time
@@ -62,27 +79,14 @@ jj = 0
 # Find initial momnetum and energy
 momentum = [np.sum((np.sum(v**2, axis=1)**0.5))]
 energy = np.sum((np.sum(v**2, axis=1)*m_arr)/2)
-pressure = 0 #the updates of these are all 0 :/
-c_mv = 0
 
-class Container:
-    def __init__(self):
-        self.x_v = 0
-        self.y_v = 0
-        
-    def rect(self, x_vertices, y_vertices):
-        """input x-positions of vertical walls, y-positions of horizontal as lists"""
-        
-        self.x_v = np.asarray(x_vertices)
-        self.y_v = np.asarray(y_vertices)
-        self.x_v.sort()
-        self.y_v.sort()
-        
-walls = Container()
-walls.rect([0,1.5],[2,0])
+#start pressure counter and pressure at 0
+pressure = 0
+press_temp = 0
+press1 = []
 
 def step():
-    global p, t, energy, pressure, c_mv
+    global p, t, energy, pressure, press_temp, press1
     
     # Define NaN arrays for wall and ball collision times
     t_wall_x = nanarr([tot_balls])
@@ -136,10 +140,10 @@ def step():
         p += v*l_step
         
         #calc change in momentum in l_step
-        pressure = c_mv * l_step # =0?
-        c_mv = 0 #resets very quickly relative to display
+        press1.append(press_temp)
+        pressure = np.sum(press1) / len(press1)
+        press_temp = 0 #resets very quickly relative to display
         energy = np.sum((np.sum(v**2, axis=1)*m_arr)/2)
-        #cm_v is an array?!
         
         return p, energy, pressure
             
@@ -156,13 +160,13 @@ def step():
             ii = np.where(t_wall_x == t_min)
             #find momentum add
             for x in ii:
-                c_mv += sum(m_arr[x]*(sum(v[x]**2)**0.5)) #not sure right
+                press_temp += sum(m_arr[x]*(sum(v[x]**2)**0.5)) * l_step / (walls.y_v[1]-walls.y_v[0])
 
         if np.sum(t_wall_y == t_min) > 0:
             v[t_wall_y == t_y_min,1] = -v[t_wall_y == t_y_min,1]
             jj = np.where(t_wall_y == t_min)
             for x in jj:
-                c_mv += sum(m_arr[x]*(sum(v[x]**2)**0.5))
+                press_temp += sum(m_arr[x]*(sum(v[x]**2)**0.5)) * l_step / (walls.x_v[1]-walls.x_v[0])
 
         
         if np.sum(t_col == t_min) > 0:
@@ -244,7 +248,7 @@ def animate(i):
         particles2.set_data(p[sum(n_balls[0:2]):sum(n_balls[0:3]), 0], p[sum(n_balls[0:2]):sum(n_balls[0:3]), 1])
     time_text.set_text('Time = %.1f s' % t)
     energy_text.set_text('Energy = %.2f J' % energy)
-    pressure_text.set_text('Pressure = %.2f Pa' % pressure)
+    pressure_text.set_text('Pressure = %.3f Pa' % pressure)
     
     if len(radii) == 1:
         return particles, time_text, energy_text, pressure_text, rect
