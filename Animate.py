@@ -26,9 +26,9 @@ def nanarr(size):
 
 
 # Defaults for number of balls, ball size and ball mass
-n_balls = np.array([25,6])
-radii = np.array([0.05,0.1])
-m_balls = np.array([100,100])
+n_balls = np.array([50,1])
+radii = np.array([0.01,0.1])
+m_balls = np.array([1,100])
 
 tot_balls = np.sum(n_balls)
 # TODO: generalise, array form with different numbers of different balls
