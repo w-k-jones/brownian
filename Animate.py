@@ -16,6 +16,8 @@ History:
 
 import sys
 import numpy as np
+import scipy as sp
+from scipy import signal
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
@@ -57,17 +59,21 @@ class Container:
         
     def sawtooth(self, vertices_array, tooth_width):
         """input two vertices to create wall between as list [[Xo,Yo],[X1,Y1]]
-        and width per triangular tooth (e.g. ~0.05)"""
+        and width per triangular tooth (e.g. 0.05)"""
+        #making vertical one first
         
-        self.width = np.asarray(tooth_width)
+        self.width = tooth_width
         self.height = self.width
-        self.x_v = np.asarray(vertices_array)[:,0]
-        self.y_v = np.asarray(vertices_array)[:,1]
+        self.x_v2 = np.asarray(vertices_array)[:,0]
+        self.y_v2 = np.asarray(vertices_array)[:,1]
         
+        self.y_v = np.linspace(self.y_v2[0], self.y_v2[1], (self.y_v2[1] - self.y_v2[0]) * 1000)
+        self.x_v = self.x_v2[0] + 0.5*self.height*(signal.sawtooth(2 * np.pi * self.width**(-1) * self.y_v) + 1) 
+        plt.plot(self.y_v, self.x_v)
         
         
 walls = Container()
-walls.rect([[0,0],[1.5,2]])
+walls.rect([[-1,-1],[1,1]])
         
 # Initialise position and velocity of balls
 p1 = np.random.uniform(low=walls.x_v[0]+max(radii), high=walls.x_v[1]-max(radii), size=[tot_balls,1])
@@ -218,7 +224,7 @@ pressure_text = ax.text(0.025, 0.83, '', transform=ax.transAxes)
 avg_press_text = ax.text(0.025, 0.78, '', transform=ax.transAxes)
 
 #Make box boundary (manually set for now, should automate later)
-rect = plt.Rectangle([walls.x_v[0],walls.y_v[0]], walls.x_v[1], walls.y_v[1], lw=2, fc='none')
+rect = plt.Rectangle([walls.x_v[0],walls.y_v[0]], walls.x_v[1] - walls.x_v[0], walls.y_v[1] - walls.y_v[0], lw=2, fc='none')
 
 ax.add_patch(rect)
 
@@ -251,16 +257,16 @@ def animate(i):
     step()
 
     #set marker size based on ball size
-    ms = fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[0]
+    ms = fig.dpi * fig.get_figwidth()/(ax.get_xlim()[1] - ax.get_xlim()[0]) * 2*radii[0]
     particles.set_markersize(ms)
     particles.set_data(p[0:n_balls[0], 0], p[0:n_balls[0], 1])
     if len(radii) > 1:
-        ms1 = fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[1]
+        ms1 = fig.dpi * fig.get_figwidth()/(ax.get_xlim()[1] - ax.get_xlim()[0]) * 2*radii[1] #this abs could be the problem
         particles1.set_markersize(ms1)
         particles1.set_markerfacecolor('r')
         particles1.set_data(p[n_balls[0]:sum(n_balls[0:2]), 0], p[n_balls[0]:sum(n_balls[0:2]), 1])
     if len(radii) > 2:
-        ms2 = fig.dpi * fig.get_figwidth()/sum(abs(i) for i in ax.get_xlim()) * 2*radii[2]
+        ms2 = fig.dpi * fig.get_figwidth()/(ax.get_xlim()[1] - ax.get_xlim()[0]) * 2*radii[2]
         particles2.set_markersize(ms2)
         particles2.set_data(p[sum(n_balls[0:2]):sum(n_balls[0:3]), 0], p[sum(n_balls[0:2]):sum(n_balls[0:3]), 1])
         
