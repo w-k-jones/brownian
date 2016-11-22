@@ -6,6 +6,7 @@ History:
     26/10/2016: LM - fixed array-making bugs, animated properly
     15/11/2016: WJ - Checked animation code working, added momentum based 
                      collisions
+    17/11/2016: WJ - Testing generic wall format (defined as a line)
 """
 
 import sys
@@ -13,13 +14,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+
+
 # Define NaN array creation routine to save time
 # This hasn't been used yet, so may not need, but leave for now 
 def nanarr(size):
     arr = np.full(size, np.nan)
     return arr
 
+#Test diagnonal wall
+test_wall = np.array([[0,0],
+                      [1,1]])
 
+#Define a, b coefficients
+#test_co = nanarr(1,2)
+#Should calculate but just test for now
+test_co = np.array([1,0])
+    
+    
 # Defaults for number of balls, ball size and ball mass
 n_balls = np.array([15])
 sizes = np.array([0.05])
@@ -79,6 +91,7 @@ def step():
     t_wall_x = nanarr([tot_balls])
     t_wall_y = nanarr([tot_balls])
     t_col = nanarr([tot_balls,tot_balls])
+    #t_wall_test = nanarr([tot_balls])
     
     #while t < t_max:
         
@@ -110,6 +123,10 @@ def step():
                 if temp > 1E-10:
                     t_col[i,j] = temp
 
+        
+        #Test wall collisions
+        #temp = np.nanmin([])
+        
         
     # Find minimum times to collision from each
     t_x_min = np.nanmin(t_wall_x)

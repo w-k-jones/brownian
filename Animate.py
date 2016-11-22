@@ -11,7 +11,10 @@ History:
     8/11/2016: LM - Made marker size vary according to ball size
                     Balls are overlapping walls and sometimes each other
     9/11/2016: LM - Made box class and walls use this class, added energy check
-    10/11/12016: LM - Put in pressure read for animation
+    10/11/2016: LM - Put in pressure read for animation
+    22/11/2016: WJ - Updated collision code with vectorised t_collide 
+        subroutine. Still won't run properly for me (plot opens and immediately 
+        closes). No error message or debugging.
 """
 
 import sys
@@ -21,17 +24,57 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-# Define NaN array creation routine to save time
-# This hasn't been used yet, so may not need, but leave for now 
+"""
+Define sub-routines used throghout
+"""
+
+"""
+NaN array creation routine just to save typing it out
+"""
 def nanarr(size):
     arr = np.full(size, np.nan)
     return arr
 
 
+"""
+Generates list of i and j indices for lower half matrix indexing (i.e. i > j)
+    For upper half triangle switch i and j. Useful for speeding up routines by
+    avoiding loops
+"""
+def tri_indgen(n):
+    a = np.arange(n)
+    b = a.T
+    i = a[a>b]
+    j = b[a>b]
+    return i, j
+
+"""
+Returns array of times to collision. 
+"""
+def t_collide(vel, pos, sz_arr):
+    n = np.shape(v)[0]
+    [j_arr, i_arr] = tri_indgen(n) #reversed i,j to use upper half triangle
+    temp = np.full([np.size(i_arr), 2], np.nan)
+    
+    a = np.sum((vel[i_arr]-vel[j_arr])**2)
+    b = 2*np.sum((vel[i_arr]-vel[j_arr])*(pos[i_arr]-pos[j_arr]))
+    c = np.sum((pos[i_arr]-pos[j_arr])**2-(sz_arr[i_arr]+sz_arr[j_arr])**2)
+    
+    chk = b**2 - 4*a*c
+    wh = chk >= 0
+    
+    temp[wh,0] = (-b[wh]+chk[wh]**0.5)/(2*a[wh])
+    temp[wh,1] = (-b[wh]-chk[wh]**0.5)/(2*a[wh])
+    temp = np.nanmin(temp, axis=1)
+    temp[temp < 1E-10] = np.nan
+
+    return temp
+
+
 # Defaults for number of balls, ball size and ball mass
-n_balls = np.array([25,6])
-radii = np.array([0.01,0.1])
-m_balls = np.array([10,100])
+n_balls = np.array([15,5])
+radii = np.array([0.05,0.1])
+m_balls = np.array([25,100])
 
 tot_balls = np.sum(n_balls)
 # TODO: generalise, array form with different numbers of different balls
@@ -48,15 +91,16 @@ class Container:
     def __init__(self):
         self.x_v = 0
         self.y_v = 0
-        
+    
     def rect(self, vertices_array):
-        """input two vertices corresponding to opposite corners of rectangle as list [[Xo,Yo],[X1,Y1]]"""
+        """input two vertices corresponding to opposite corners of rectangle as
+        list [[Xo,Yo],[X1,Y1]]"""
         
         self.x_v = np.asarray(vertices_array)[:,0]
         self.y_v = np.asarray(vertices_array)[:,1]
         self.x_v.sort()
         self.y_v.sort()
-        
+    
     def sawtooth(self, vertices_array, tooth_width):
         """input two vertices to create wall between as list [[Xo,Yo],[X1,Y1]]
         and width per triangular tooth (e.g. 0.05)"""
@@ -67,17 +111,20 @@ class Container:
         self.x_v2 = np.asarray(vertices_array)[:,0]
         self.y_v2 = np.asarray(vertices_array)[:,1]
         
-        self.y_v = np.linspace(self.y_v2[0], self.y_v2[1], (self.y_v2[1] - self.y_v2[0]) * 1000)
+        self.y_v = np.linspace(self.y_v2[0], self.y_v2[1], 
+                               (self.y_v2[1] - self.y_v2[0]) * 1000)
         self.x_v = self.x_v2[0] + 0.5*self.height*(signal.sawtooth(2 * np.pi * self.width**(-1) * self.y_v) + 1) 
         plt.plot(self.y_v, self.x_v)
-        
+    
         
 walls = Container()
 walls.rect([[-1,-1],[1,1]])
         
 # Initialise position and velocity of balls
-p1 = np.random.uniform(low=walls.x_v[0]+max(radii), high=walls.x_v[1]-max(radii), size=[tot_balls,1])
-p2 = np.random.uniform(low=walls.y_v[0]+max(radii), high=walls.y_v[1]-max(radii), size=[tot_balls,1])
+p1 = np.random.uniform(low=walls.x_v[0]+max(radii), 
+                       high=walls.x_v[1]-max(radii), size=[tot_balls,1])
+p2 = np.random.uniform(low=walls.y_v[0]+max(radii), 
+                       high=walls.y_v[1]-max(radii), size=[tot_balls,1])
 p = np.concatenate((p1,p2), axis=1)
 v = np.random.uniform(low=-0.5, high=0.5, size=[tot_balls,2])
 
@@ -93,7 +140,7 @@ t = 0
 ii = 0
 jj = 0
 
-# Find initial momnetum and energy
+# Find initial momentum and energy
 momentum = [np.sum((np.sum(v**2, axis=1)**0.5))]
 energy = np.sum((np.sum(v**2, axis=1)*m_arr)/2)
 
@@ -111,21 +158,31 @@ def step():
     t_wall_y = nanarr([tot_balls])
     t_col = nanarr([tot_balls,tot_balls])
     
+    n = np.shape(v)[0]
+    [j_arr,i_arr] = tri_indgen(n) #reversed i,j to use upper half triangle
+    
+    # Find collision times between balls
+    t_col = t_collide(v,p,size_arr)
+    print, t_col
+    
     for i in range(tot_balls):
         
         # Find collision times for vertical walls
-        temp = np.nanmax([(walls.x_v[0]-p[i,0]+size_arr[i])/v[i,0],(walls.x_v[1]-p[i,0]-size_arr[i])/v[i,0]]) 
+        temp = np.nanmax([(walls.x_v[0]-p[i,0]+size_arr[i])/v[i,0], 
+                          (walls.x_v[1]-p[i,0]-size_arr[i])/v[i,0]]) 
         #walls set as 0 & 1 here
         if temp >= 0:
             t_wall_x[i] = temp
         
         # Find collision times for horizontal walls
-        temp = np.nanmax([-(p[i,1]-walls.y_v[0]-size_arr[i])/v[i,1],-(p[i,1]-walls.y_v[1]+size_arr[i])/v[i,1]])
+        temp = np.nanmax([-(p[i,1]-walls.y_v[0]-size_arr[i])/v[i,1],
+                          -(p[i,1]-walls.y_v[1]+size_arr[i])/v[i,1]])
         if temp >= 0:
             t_wall_y[i] = temp
             
-            
-        # Find collision times between balls
+    
+        
+        """
         # Loop over all higher index balls to avoid double checking
         for j in range(i+1,tot_balls):
             # Calculate quadratic coefficients
@@ -138,6 +195,7 @@ def step():
                 temp = np.nanmin([(-b+chk**0.5)/(2*a),(-b-chk**0.5)/(2*a)])
                 if temp > 1E-10:
                     t_col[i,j] = temp
+        """
             
             
     # Find minimum times to collision from each
@@ -193,7 +251,9 @@ def step():
 
         
         if np.sum(t_col == t_min) > 0:
-            kk,ll = np.where(t_col == t_min)
+            wh = t_col == t_min
+            kk = i_arr[wh]
+            ll = j_arr[wh]
             for m in range(kk.size):
 
                 dij = p[ll[m]]-p[kk[m]]
