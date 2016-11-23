@@ -31,9 +31,9 @@ from brownian_tools import *
 Set # of balls, radii and masses
 Define as arrays for multiple different balls
 """
-n_balls = np.array([100,5])
-radii = np.array([0.025,0.1])
-m_balls = np.array([5,100])
+n_balls = np.array([100,5,1])
+radii = np.array([0.025,0.1,0.2])
+m_balls = np.array([5,100,400])
 
 """
 Define number of steps (for plotting) and step length, find max time

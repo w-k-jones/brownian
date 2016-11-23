@@ -70,11 +70,11 @@ def t_wall(pos, vel, sz_arr, coord):
     wall_n = wall_n/np.sum(wall_n**2)**0.5
     
     #Position vector to wall
-    dist_n = np.dot(coord[0]-pos, wall_n)
+    pos_n = np.dot(coord[0]-pos, wall_n)
     vel_n = np.dot(vel, wall_n)
     
     #minimum time to collision
-    temp = np.nanmin([(pos_n-sz_arr)/vel_n, (pos_n+sz_arr)/vel_n]
+    temp = np.nanmin([(pos_n-sz_arr)/vel_n, (pos_n+sz_arr)/vel_n])
     if temp < 1E-10:
         temp = np.nan
         
