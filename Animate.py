@@ -5,16 +5,18 @@ History:
     22/10/2016: WJ - Created file, replicating matlab script collisiontrial.m
     26/10/2016: LM - Fixed array-making bugs, animated properly
     1/11/2016: WJ - Added collision code back in, currently not working properly
-    3/11/2016: WJ - Fixed looping code - would collide regardless after each loop.
-                    Added momentum to collisions so different masses work.
-                    Added size_arr, collisions working but not animation.
-    8/11/2016: LM - Made marker size vary according to ball size
-                    Balls are overlapping walls and sometimes each other
+    3/11/2016: WJ - Fixed looping code - would collide regardless after each 
+        loop. Added momentum to collisions so different masses work. Added 
+        size_arr, collisions working but not animation.
+    8/11/2016: LM - Made marker size vary according to ball size Balls are 
+        overlapping walls and sometimes each other
     9/11/2016: LM - Made box class and walls use this class, added energy check
     10/11/2016: LM - Put in pressure read for animation
     22/11/2016: WJ - Updated collision code with vectorised t_collide 
         subroutine. Still won't run properly for me (plot opens and immediately 
         closes). No error message or debugging.
+    23/11/2016: WJ - Fixed new collision code, vectorised wall code. Separated
+        functions to brownian_tools module.
 """
 
 import sys
@@ -23,70 +25,13 @@ import scipy as sp
 from scipy import signal
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-
-"""
-Define sub-routines used throghout
-"""
-
-"""
-NaN array creation routine just to save typing it out
-"""
-def nanarr(size):
-    arr = np.full(size, np.nan)
-    return arr
-
-
-"""
-Generates list of i and j indices for lower half matrix indexing (i.e. i > j)
-    For upper half triangle switch i and j. Useful for speeding up routines by
-    avoiding loops
-"""
-def tri_indgen(n):
-    a = np.arange(n)
-    a = np.tile(a,[n,1])
-    b = a.T
-    i = a[a>b]
-    j = b[a>b]
-    return i, j
-
-"""
-Returns array of times to collision. 
-"""
-def t_collide(vel, pos, sz_arr):
-    n = np.shape(v)[0]
-    [j_arr, i_arr] = tri_indgen(n) #reversed i,j to use upper half triangle
-    temp = np.full([np.size(i_arr), 2], np.nan)
-    
-    a = np.sum((vel[i_arr]-vel[j_arr])**2, axis=1)
-    b = 2*np.sum((vel[i_arr]-vel[j_arr])*(pos[i_arr]-pos[j_arr]), axis=1)
-    c = np.sum((pos[i_arr]-pos[j_arr])**2, axis=1)-(sz_arr[i_arr]+sz_arr[j_arr])**2
-    
-    chk = b**2 - 4*a*c
-    wh = chk >= 0
-    
-    temp[wh,0] = (-b[wh]+chk[wh]**0.5)/(2*a[wh])
-    temp[wh,1] = (-b[wh]-chk[wh]**0.5)/(2*a[wh])
-    temp = np.nanmin(temp, axis=1)
-    temp[temp < 1E-10] = np.nan
-
-    return temp
-
-"""
-Returns array of distances to collisions
-"""
-def get_dist(pos,sz_arr):
-    n = np.shape(v)[0]
-    [j_arr, i_arr] = tri_indgen(n) #reversed i,j to use upper half triangle
-    
-    temp = np.sum((pos[i_arr]-pos[j_arr])**2, axis=1)**0.5 - (sz_arr[i_arr]+sz_arr[j_arr])
-    return temp
-
+from brownian_tools import *
 
 
 # Defaults for number of balls, ball size and ball mass
-n_balls = np.array([100])
-radii = np.array([0.04])
-m_balls = np.array([4])
+n_balls = np.array([100,1])
+radii = np.array([0.025,0.1])
+m_balls = np.array([5,100])
 
 tot_balls = np.sum(n_balls)
 
@@ -261,9 +206,11 @@ def step():
         
         """Check if balls are overlapping each other (tolerance of 1E-10 for 
         float uncertainty)"""
+        """#uncomment to enable
         temp = get_dist(p,size_arr)
         if np.size(temp[temp<-1E-10]) > 0:
             print temp[temp<0]
+        """
             
            
         if np.sum(t_wall_x == t_min) > 0:
