@@ -89,7 +89,7 @@ radii = np.array([0.04])
 m_balls = np.array([4])
 
 tot_balls = np.sum(n_balls)
-# TODO: generalise, array form with different numbers of different balls
+
 
 for i in range(len(n_balls)):
     if i == 0:
@@ -177,6 +177,17 @@ def step():
     t_col = t_collide(v,p,size_arr)
     #print t_col
     
+    # Find collision times for vertical walls
+    t_wall_x = np.nanmax([(walls.x_v[0]-p[:,0]+size_arr)/v[:,0], 
+                          (walls.x_v[1]-p[:,0]-size_arr)/v[:,0]], axis = 0)
+    t_wall_x[t_wall_x < 0] = np.nan
+    
+    t_wall_y = np.nanmax([(walls.x_v[0]-p[:,1]+size_arr)/v[:,1], 
+                          (walls.x_v[1]-p[:,1]-size_arr)/v[:,1]], axis = 0)
+    t_wall_y[t_wall_y < 0] = np.nan
+
+    
+    """Old loop code - slow
     for i in range(tot_balls):
         
         # Find collision times for vertical walls
@@ -194,7 +205,7 @@ def step():
             
     
         
-        """
+        
         Old iterative code, much slower. See t_collide function for replacement
         # Loop over all higher index balls to avoid double checking
         for j in range(i+1,tot_balls):
@@ -208,8 +219,8 @@ def step():
                 temp = np.nanmin([(-b+chk**0.5)/(2*a),(-b-chk**0.5)/(2*a)])
                 if temp > 1E-10:
                     t_col[i,j] = temp
-        """
-            
+        
+    """
             
     # Find minimum times to collision from each
     t_x_min = np.nanmin(t_wall_x)
