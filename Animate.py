@@ -31,7 +31,7 @@ from brownian_tools import *
 Set # of balls, radii and masses
 Define as arrays for multiple different balls
 """
-n_balls = np.array([100,1])
+n_balls = np.array([100,5])
 radii = np.array([0.025,0.1])
 m_balls = np.array([5,100])
 
@@ -128,17 +128,11 @@ Step function, step to next collision or step time limit
 def step():
     global p, t, energy, pressure, avg_press, press_temp, press1
     
-    # Define NaN arrays for wall and ball collision times
-    t_wall_x = nanarr([tot_balls])
-    t_wall_y = nanarr([tot_balls])
-    t_col = nanarr([tot_balls,tot_balls])
-    
     n = np.shape(v)[0]
     [j_arr,i_arr] = tri_indgen(n) #reversed i,j to use upper half triangle
     
     # Find collision times between balls
-    t_col = t_collide(v,p,size_arr)
-    #print t_col
+    t_col = t_collide(p,v,size_arr)
     
     # Find collision times for vertical walls
     t_wall_x = np.nanmax([(walls.x_v[0]-p[:,0]+size_arr)/v[:,0], 

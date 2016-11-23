@@ -5,6 +5,7 @@ Library of common functions for Brownian code
 @author: William Jones and Luc Moseley
 History:
     23/11/2016: WJ - created, imported functions from animate.py
+    23/11/2016: WJ - started work on t_wall; new general wall collision code
 """
 
 
@@ -40,7 +41,7 @@ def tri_indgen(n):
 """
 Returns array of times to collision. 
 """
-def t_collide(vel, pos, sz_arr):
+def t_collide(pos, vel, sz_arr):
     n = np.shape(vel)[0]
     [j_arr, i_arr] = tri_indgen(n) #reversed i,j to use upper half triangle
     temp = np.full([np.size(i_arr), 2], np.nan)
@@ -59,6 +60,29 @@ def t_collide(vel, pos, sz_arr):
 
     return temp
 
+"""
+Returns array of collision times to wall
+"""
+def t_wall(pos, vel, sz_arr, coord):
+    wall_vec = coord[1]-coord[0]
+    # Calculate normalised normal vector to wall
+    wall_n = np.dot(np.array([[0,-1],[1,0]]), wall_vec)
+    wall_n = wall_n/np.sum(wall_n**2)**0.5
+    
+    #Position vector to wall
+    dist_n = np.dot(coord[0]-pos, wall_n)
+    vel_n = np.dot(vel, wall_n)
+    
+    #minimum time to collision
+    temp = np.nanmin([(pos_n-sz_arr)/vel_n, (pos_n+sz_arr)/vel_n]
+    if temp < 1E-10:
+        temp = np.nan
+        
+    #TODO: check for end of walls
+    
+    return temp
+    
+    
 
 """
 Returns array of distances to collisions
