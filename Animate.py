@@ -71,11 +71,22 @@ def t_collide(vel, pos, sz_arr):
 
     return temp
 
+"""
+Returns array of distances to collisions
+"""
+def get_dist(pos,sz_arr):
+    n = np.shape(v)[0]
+    [j_arr, i_arr] = tri_indgen(n) #reversed i,j to use upper half triangle
+    
+    temp = np.sum((pos[i_arr]-pos[j_arr])**2, axis=1)**0.5 - (sz_arr[i_arr]+sz_arr[j_arr])
+    return temp
+
+
 
 # Defaults for number of balls, ball size and ball mass
-n_balls = np.array([15,5])
-radii = np.array([0.05,0.1])
-m_balls = np.array([25,100])
+n_balls = np.array([100])
+radii = np.array([0.04])
+m_balls = np.array([4])
 
 tot_balls = np.sum(n_balls)
 # TODO: generalise, array form with different numbers of different balls
@@ -184,6 +195,7 @@ def step():
     
         
         """
+        Old iterative code, much slower. See t_collide function for replacement
         # Loop over all higher index balls to avoid double checking
         for j in range(i+1,tot_balls):
             # Calculate quadratic coefficients
@@ -235,6 +247,12 @@ def step():
 
         #Move balls to collision positions
         p += v*t_min
+        
+        """Check if balls are overlapping each other (tolerance of 1E-10 for 
+        float uncertainty)"""
+        temp = get_dist(p,size_arr)
+        if np.size(temp[temp<-1E-10]) > 0:
+            print temp[temp<0]
             
            
         if np.sum(t_wall_x == t_min) > 0:
