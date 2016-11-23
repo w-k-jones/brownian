@@ -27,15 +27,27 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from brownian_tools import *
 
-
-# Defaults for number of balls, ball size and ball mass
+"""
+Set # of balls, radii and masses
+Define as arrays for multiple different balls
+"""
 n_balls = np.array([100,1])
 radii = np.array([0.025,0.1])
 m_balls = np.array([5,100])
 
+"""
+Define number of steps (for plotting) and step length, find max time
+"""
+n_steps = 100
+l_step = 0.01
+
+t_max = l_step*n_steps
+
+
+"""
+Creates arrays of ball sizes and masses for input values
+"""
 tot_balls = np.sum(n_balls)
-
-
 for i in range(len(n_balls)):
     if i == 0:
         size_arr = np.full(n_balls[0], radii[0])
@@ -44,6 +56,10 @@ for i in range(len(n_balls)):
         size_arr = np.concatenate((size_arr, np.full(n_balls[i], radii[i])))
         m_arr = np.concatenate((m_arr, np.full(n_balls[i], m_balls[i])))
 
+"""
+Define system container
+needs generalising
+"""
 class Container:
     def __init__(self):
         self.x_v = 0
@@ -77,7 +93,9 @@ class Container:
 walls = Container()
 walls.rect([[-1,-1],[1,1]])
         
-# Initialise position and velocity of balls
+"""
+Initialise position and velocity of balls
+"""
 p1 = np.random.uniform(low=walls.x_v[0]+max(radii), 
                        high=walls.x_v[1]-max(radii), size=[tot_balls,1])
 p2 = np.random.uniform(low=walls.y_v[0]+max(radii), 
@@ -85,10 +103,7 @@ p2 = np.random.uniform(low=walls.y_v[0]+max(radii),
 p = np.concatenate((p1,p2), axis=1)
 v = np.random.uniform(low=-0.5, high=0.5, size=[tot_balls,2])
 
-# Define number of steps (for plotting) and step length, find max time
-n_steps = 100
-l_step = 0.01
-t_max = l_step*n_steps
+
 
 # Initialise time
 t = 0
@@ -107,6 +122,9 @@ press_temp = 0
 avg_press = 0
 press1 = []
 
+"""
+Step function, step to next collision or step time limit
+"""
 def step():
     global p, t, energy, pressure, avg_press, press_temp, press1
     
