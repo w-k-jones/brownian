@@ -43,6 +43,7 @@ Generates list of i and j indices for lower half matrix indexing (i.e. i > j)
 """
 def tri_indgen(n):
     a = np.arange(n)
+    a = np.tile(a,[n,1])
     b = a.T
     i = a[a>b]
     j = b[a>b]
@@ -56,9 +57,9 @@ def t_collide(vel, pos, sz_arr):
     [j_arr, i_arr] = tri_indgen(n) #reversed i,j to use upper half triangle
     temp = np.full([np.size(i_arr), 2], np.nan)
     
-    a = np.sum((vel[i_arr]-vel[j_arr])**2)
-    b = 2*np.sum((vel[i_arr]-vel[j_arr])*(pos[i_arr]-pos[j_arr]))
-    c = np.sum((pos[i_arr]-pos[j_arr])**2-(sz_arr[i_arr]+sz_arr[j_arr])**2)
+    a = np.sum((vel[i_arr]-vel[j_arr])**2, axis=1)
+    b = 2*np.sum((vel[i_arr]-vel[j_arr])*(pos[i_arr]-pos[j_arr]), axis=1)
+    c = np.sum((pos[i_arr]-pos[j_arr])**2, axis=1)-(sz_arr[i_arr]+sz_arr[j_arr])**2
     
     chk = b**2 - 4*a*c
     wh = chk >= 0
@@ -163,7 +164,7 @@ def step():
     
     # Find collision times between balls
     t_col = t_collide(v,p,size_arr)
-    print, t_col
+    #print t_col
     
     for i in range(tot_balls):
         
