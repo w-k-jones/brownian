@@ -43,6 +43,16 @@ l_step = 0.01
 
 t_max = l_step*n_steps
 
+"""
+Define wall coordinates
+"""
+#Simple box
+w_coord = np.array([[-1,-1],
+                     [1,-1],
+                     [1,1],
+                     [-1,1]])
+n_wall = np.shape(w_coords)[0]
+# TODO: convert all routines to use this
 
 """
 Creates arrays of ball sizes and masses for input values
@@ -135,6 +145,17 @@ def step():
     t_col = t_collide(p,v,size_arr)
     
     # Find collision times for vertical walls
+    t_2wall = nanarr([tot_balls,n_wall])
+    for j in range(n_wall):
+        if j == n_wall:
+            w_ends = w_coord[[j,1],:]
+        else:
+            w_ends = w_coord[j:j+1]
+        for i in range(tot_balls):
+            t_2wall[i,j] = t_wall(p[i],v[i],size_arr[i],w_ends)
+    
+    
+    """
     t_wall_x = np.nanmax([(walls.x_v[0]-p[:,0]+size_arr)/v[:,0], 
                           (walls.x_v[1]-p[:,0]-size_arr)/v[:,0]], axis = 0)
     t_wall_x[t_wall_x < 0] = np.nan
@@ -142,7 +163,7 @@ def step():
     t_wall_y = np.nanmax([(walls.x_v[0]-p[:,1]+size_arr)/v[:,1], 
                           (walls.x_v[1]-p[:,1]-size_arr)/v[:,1]], axis = 0)
     t_wall_y[t_wall_y < 0] = np.nan
-
+    """
     
     """Old loop code - slow
     for i in range(tot_balls):
@@ -180,12 +201,11 @@ def step():
     """
             
     # Find minimum times to collision from each
-    t_x_min = np.nanmin(t_wall_x)
-    t_y_min = np.nanmin(t_wall_y)
+    t_wall_min = np.nanmin(t_2wall)
     t_col_min = np.nanmin(t_col)
 
     # Find overall minimum time to collision 
-    t_min = np.nanmin([t_x_min,t_y_min,t_col_min])
+    t_min = np.nanmin([t_wall_min,t_col_min])
 
     # Check if no collision, if so stop
     if np.isnan(t_min):
@@ -223,8 +243,15 @@ def step():
         if np.size(temp[temp<-1E-10]) > 0:
             print temp[temp<0]
         """
-            
-           
+        
+        #Temporary wall code
+        for j in range(n_wall):
+            if np.sum(t_2wall == t_min) > 0:
+                ii = np.where(t_2wall[:,j] == t_min)
+                v[ii,(j+1)%2] = -v[ii,(j+1)%2]
+                
+                
+        """
         if np.sum(t_wall_x == t_min) > 0:
             v[t_wall_x == t_x_min,0] = -v[t_wall_x == t_x_min,0]
             ii = np.where(t_wall_x == t_min)
@@ -237,7 +264,7 @@ def step():
             jj = np.where(t_wall_y == t_min)
             for x in jj:
                 press_temp += sum(m_arr[x]*(sum(v[x]**2)**0.5)) * l_step / (walls.x_v[1]-walls.x_v[0])
-
+        """
         
         if np.sum(t_col == t_min) > 0:
             wh = t_col == t_min

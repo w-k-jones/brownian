@@ -78,7 +78,7 @@ def t_wall(pos, vel, sz_arr, coord):
     if temp < 1E-10:
         temp = np.nan
         
-    #TODO: check for end of walls
+    #TODO: check for end of walls, important for obtuse shapes
     
     return temp
     
