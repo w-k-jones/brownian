@@ -6,6 +6,8 @@ Library of common functions for Brownian code
 History:
     23/11/2016: WJ - created, imported functions from animate.py
     23/11/2016: WJ - started work on t_wall; new general wall collision code
+    24/11/2016: WJ - Added in new collision routine for walls, incomplete, 
+        needs vectorising
 """
 
 

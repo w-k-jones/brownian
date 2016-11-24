@@ -17,6 +17,7 @@ History:
         closes). No error message or debugging.
     23/11/2016: WJ - Fixed new collision code, vectorised wall code. Separated
         functions to brownian_tools module.
+    24/11/2016: WJ - Added in new collision routine for walls, incomplete.
 """
 
 import sys
