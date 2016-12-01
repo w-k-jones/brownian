@@ -45,6 +45,7 @@ Returns array of times to collision.
 """
 def t_collide(pos, vel, sz_arr):
     n = np.shape(vel)[0]
+    nd = np.shape(vel)[1]
     [j_arr, i_arr] = tri_indgen(n) #reversed i,j to use upper half triangle
     temp = np.full([np.size(i_arr), 2], np.nan)
     

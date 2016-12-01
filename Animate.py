@@ -29,6 +29,11 @@ import matplotlib.animation as animation
 from brownian_tools import *
 
 """
+Define # of dimensions
+"""
+nd = 2
+
+"""
 Set # of balls, radii and masses
 Define as arrays for multiple different balls
 """
@@ -52,7 +57,26 @@ w_coord = np.array([[-1,-1],
                      [1,-1],
                      [1,1],
                      [-1,1]])
-n_wall = np.shape(w_coords)[0]
+
+#Check if last corner equal to first, if not duplicate, then get number of 
+#walls
+if (sum(w_coord[0] == w_coord[-1]) != np.shape(w_coord)[1]):
+    n_wall = np.shape(w_coord)[0]
+    w_coord = np.concatenate((w_coord, w_coord[-1]), axis=0)
+    
+else:
+    n_wall = np.shape(w_coord)[0] - 1
+
+#Now calculate wall unit vectors normal vectors
+w_vec = nanarr([n_wall,nd])
+w_norm = nanarr([n_wall,nd])
+for i in np.arange(n_wall):
+    w_vec = w_coord[i+1]-w_coord[i]
+    w_vec = w_vec/np.sum(w_vec**2)**0.5
+    #Calculate normalised normal vector to wall
+    w_norm = np.dot(np.array([[0,-1],[1,0]]), w_vec)
+    w_norm = w_norm/np.sum(w_norm**2)**0.5
+
 # TODO: convert all routines to use this
 
 """
