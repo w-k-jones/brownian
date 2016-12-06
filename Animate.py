@@ -96,6 +96,15 @@ class Wall:
         self.get_v()
         self.get_n()
         
+    def rect(self,x0,y0,x1,y1):
+        self.co = np.array([[x0,y0],
+                            [x1,y0],
+                            [x1,y1],
+                            [x0,y1]])
+        self.set_2d()
+    
+    
+    
     #def check_inside(pos,vel):
         
  
