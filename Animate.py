@@ -19,6 +19,8 @@ History:
         functions to brownian_tools module.
     24/11/2016: WJ - Added in new collision routine for walls, incomplete.
     6/12/2016: WJ - Added new wall class with initialisation routines.
+    6/12/2016: LM - Added sawtooth function with trigger wall on tooth side.
+        Needs assimilating to rest of new code.
     
 Variable naming convention:
     w_... Wall related variable (should probably make class)
