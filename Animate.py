@@ -162,41 +162,78 @@ for i in range(len(n_balls)):
         size_arr = np.concatenate((size_arr, np.full(n_balls[i], radii[i])))
         m_arr = np.concatenate((m_arr, np.full(n_balls[i], m_balls[i])))
 
-"""Removed for now to make wall class (less general container)
-
-Define system container
-needs generalising
-
 class Container:
     def __init__(self):
         self.x_v = 0
         self.y_v = 0
     
     def rect(self, vertices_array):
-    input two vertices corresponding to opposite corners of rectangle as
-        list [[Xo,Yo],[X1,Y1]]
+        """input two vertices corresponding to opposite corners of rectangle as
+        list [[Xo,Yo],[X1,Y1]]"""
         
         self.x_v = np.asarray(vertices_array)[:,0]
         self.y_v = np.asarray(vertices_array)[:,1]
         self.x_v.sort()
         self.y_v.sort()
     
-    def sawtooth(self, vertices_array, tooth_width):
-        #input two vertices to create wall between as list [[Xo,Yo],[X1,Y1]]
-        #and width per triangular tooth (e.g. 0.05)
+    def sawtooth(self, vertices_array, num_teeth, spike_side = 1, spike_dir = 1):
+        """input two vertices to create wall between as list [[Xo,Yo],[X1,Y1]],
+        no. of triangular teeth as integer,
+        side want spikes on: 1 = right, -1 = left
+        direction want spikes in: -1 reverses
+        """
+        #for horizontal lines, spike_side = 1 will put spikes on bottom, -1 on top
+        #spikes will point up or right if spike_dir = 1, down or left for -1
         
-        #making vertical one first
-        
-        self.width = tooth_width
+        self.vertices = np.asarray(vertices_array)
+        self.vdist = pdist(self.vertices)
+        self.width = self.vdist / num_teeth
         self.height = self.width
+        self.side = spike_side
+        self.dir = spike_dir
         self.x_v2 = np.asarray(vertices_array)[:,0]
         self.y_v2 = np.asarray(vertices_array)[:,1]
+        self.theta = 0
         
-        self.y_v = np.linspace(self.y_v2[0], self.y_v2[1], 
-                               (self.y_v2[1] - self.y_v2[0]) * 1000)
-        self.x_v = self.x_v2[0] + 0.5*self.height*(signal.sawtooth(2 * np.pi * self.width**(-1) * self.y_v) + 1) 
-        plt.plot(self.y_v, self.x_v)
-"""    
+        self.norm = normal(self.x_v2, self.y_v2, self.side)
+        self.norm = self.norm * length(self.norm)**(-1)
+        self.trig_wall_x_v = self.x_v2 + self.norm[0] * (self.height + 1.1 * max(radii))
+        self.trig_wall_y_v = self.y_v2 + self.norm[1] * (self.height + 1.1 * max(radii))
+        #self.trig_wall = np.array
+        
+        #sets self.angle_sign = +- 1 depending on positive or negative slope
+        self.angle_sign = np.sign((self.y_v2[1]-self.y_v2[0])/(self.x_v2[1]-self.x_v2[0]))
+        if self.angle_sign == 0:
+            self.angle_sign = 1
+        
+        #determines whether vertices are in ascending or descending order of y-value as multiplier
+        c = 1
+        if self.y_v2[1] < self.y_v2[0]:
+            if self.x_v2[1] != self.x_v2[0]:
+                c = -1
+        
+        #generates vertical sawtooth to be rotated and moved into place
+        self.y_v = np.linspace(0, self.vdist, self.vdist * 1000)
+        self.x_v = self.side*0.5*self.height*(signal.sawtooth(2 * np.pi * self.width**(-1) * self.y_v) + 1) 
+        if self.dir == -1:
+            self.x_v = self.x_v[::-1]
+        
+        #rotation if necessary
+        if self.x_v2[0] != self.x_v2[1]:
+            self.theta = findangle(np.array([self.x_v2[1]-self.x_v2[0], self.y_v2[1]-self.y_v2[0]]))
+            self.x_prime = self.x_v * math.cos(self.theta) + c*self.angle_sign * self.y_v * math.sin(self.theta)
+            self.y_prime = (-1) * c*self.angle_sign * self.x_v * math.sin(self.theta) + self.y_v * math.cos(self.theta)
+        elif self.x_v2[0] == self.x_v2[1]:
+            self.x_prime = self.x_v
+            self.y_prime = self.y_v
+        
+        #shifts rotated sawtooth to correct vertex 
+        if self.angle_sign == 1:
+            self.x_fin = c * self.x_prime + min(self.x_v2)
+            self.y_fin = c * self.y_prime + min(self.y_v2)
+        else:
+            self.x_fin = c * self.x_prime + max(self.x_v2)
+            self.y_fin = c * self.y_prime + min(self.y_v2) 
         
 #walls = Container()
 #walls.rect([[-1,-1],[1,1]])
