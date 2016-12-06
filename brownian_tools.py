@@ -96,3 +96,15 @@ def get_dist(pos,sz_arr):
     
     temp = np.sum((pos[i_arr]-pos[j_arr])**2, axis=1)**0.5 - (sz_arr[i_arr]+sz_arr[j_arr])
     return temp
+
+"""
+Finds vector normal for sawtooth (to create trigger wall on correct side)
+"""
+
+def normal(x_v2, y_v2, spike_side):
+    x_v3, y_v3 = y_v2, x_v2
+    if spike_side == 1:
+        y_v3 = y_v3 * -1
+    elif spike_side == -1:
+        x_v3 = x_v3 * -1
+    return np.array([x_v3[1]-x_v3[0], y_v3[1]-y_v3[0]])
