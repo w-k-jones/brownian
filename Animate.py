@@ -18,6 +18,15 @@ History:
     23/11/2016: WJ - Fixed new collision code, vectorised wall code. Separated
         functions to brownian_tools module.
     24/11/2016: WJ - Added in new collision routine for walls, incomplete.
+    6/12/2016: WJ - Added new wall class with initialisation routines.
+    
+Variable naming convention:
+    w_... Wall related variable (should probably make class)
+    n_... # of ...
+    p_... position of ...
+    v_... velocity of ...
+    ..._n normal vector of ...
+    ..._p parallel vector of ...
 """
 
 import sys
@@ -32,6 +41,62 @@ from brownian_tools import *
 Define # of dimensions
 """
 nd = 2
+
+"""
+Define wall class
+[move to different file?]
+"""
+class Wall:
+    """
+    Initialise with coordinate 0,0,...
+    """
+    def __init__(self, nd):
+        #no. of dimensions
+        self.nd = nd
+        #corner co-ords
+        self.co = np.full([1,self.nd],0)
+        #Limits of box
+        self.x_v = np.array([0,0])
+        self.y_v = np.array([0,0])
+        #no. of walls (# of co-ords -1)
+        self.n = 0
+        """TODO: add check for corresponding periodic boundary"""
+        #Periodic boundary flag
+        self.pb_flag = 0
+        #Index of corresponding opposite boundary
+        self.pb_ind = 0
+        #Roughness value (randomly rotates wall vector for collision)
+        self.rb = 0
+        #Friction value (proportionally reduces parallel v)
+        self.fb = 0
+
+    """Get normalised wall vector for each wall"""
+    def get_v(self):
+        self.v = np.full([self.n,self.nd],np.nan)
+        for i in np.arange(self.n):
+            self.v[i] = self.co[i+1] - self.co[i]
+        
+        self.v = self.v / (np.sum(self.v**2, axis=1))**0.5
+
+    """Get perpendicular normal vector for each wall (2d)"""
+    def get_n(self):
+        if nd == 2:
+            self.n = np.concatenate((-self.v[:,1],self.v[:,0]), axis=1)
+    
+    """Set wall coords and find vectors for 2d case"""
+    def set_2d(self):
+        if np.sum(self.co[-1] != self.co[0]) >= 1:
+            self.co = np.concatenate((self.co, self.co[-1]), axis=0)
+        
+        self.x_v = np.array([np.nanmin(self.co[:,0]),np.nanmax(self.co[:,0])])
+        self.y_v = np.array([np.nanmin(self.co[:,1]),np.nanmax(self.co[:,1])])
+        self.n = np.size(self.co)[0] - 1
+        self.get_v()
+        self.get_n()
+        
+    #def check_inside(pos,vel):
+        
+ 
 
 """
 Set # of balls, radii and masses
@@ -52,12 +117,17 @@ t_max = l_step*n_steps
 """
 Define wall coordinates
 """
-#Simple box
-w_coord = np.array([[-1,-1],
-                     [1,-1],
-                     [1,1],
-                     [-1,1]])
+wall = Wall(nd)
 
+#Simple box
+wall.co = np.array([[-1,-1],
+                    [1,-1],
+                    [1,1],
+                    [-1,1]])
+
+wall.set_2d()
+
+"""
 #Check if last corner equal to first, if not duplicate, then get number of 
 #walls
 if (sum(w_coord[0] == w_coord[-1]) != np.shape(w_coord)[1]):
@@ -76,8 +146,9 @@ for i in np.arange(n_wall):
     #Calculate normalised normal vector to wall
     w_norm = np.dot(np.array([[0,-1],[1,0]]), w_vec)
     w_norm = w_norm/np.sum(w_norm**2)**0.5
+"""
 
-# TODO: convert all routines to use this
+# TODO: convert all routines to use new wall class
 
 """
 Creates arrays of ball sizes and masses for input values
@@ -91,18 +162,19 @@ for i in range(len(n_balls)):
         size_arr = np.concatenate((size_arr, np.full(n_balls[i], radii[i])))
         m_arr = np.concatenate((m_arr, np.full(n_balls[i], m_balls[i])))
 
-"""
+"""Removed for now to make wall class (less general container)
+
 Define system container
 needs generalising
-"""
+
 class Container:
     def __init__(self):
         self.x_v = 0
         self.y_v = 0
     
     def rect(self, vertices_array):
-        """input two vertices corresponding to opposite corners of rectangle as
-        list [[Xo,Yo],[X1,Y1]]"""
+    input two vertices corresponding to opposite corners of rectangle as
+        list [[Xo,Yo],[X1,Y1]]
         
         self.x_v = np.asarray(vertices_array)[:,0]
         self.y_v = np.asarray(vertices_array)[:,1]
@@ -110,8 +182,9 @@ class Container:
         self.y_v.sort()
     
     def sawtooth(self, vertices_array, tooth_width):
-        """input two vertices to create wall between as list [[Xo,Yo],[X1,Y1]]
-        and width per triangular tooth (e.g. 0.05)"""
+        #input two vertices to create wall between as list [[Xo,Yo],[X1,Y1]]
+        #and width per triangular tooth (e.g. 0.05)
+        
         #making vertical one first
         
         self.width = tooth_width
@@ -123,22 +196,22 @@ class Container:
                                (self.y_v2[1] - self.y_v2[0]) * 1000)
         self.x_v = self.x_v2[0] + 0.5*self.height*(signal.sawtooth(2 * np.pi * self.width**(-1) * self.y_v) + 1) 
         plt.plot(self.y_v, self.x_v)
-    
+"""    
         
-walls = Container()
-walls.rect([[-1,-1],[1,1]])
+#walls = Container()
+#walls.rect([[-1,-1],[1,1]])
         
 """
 Initialise position and velocity of balls
 """
-p1 = np.random.uniform(low=walls.x_v[0]+max(radii), 
-                       high=walls.x_v[1]-max(radii), size=[tot_balls,1])
-p2 = np.random.uniform(low=walls.y_v[0]+max(radii), 
-                       high=walls.y_v[1]-max(radii), size=[tot_balls,1])
+p1 = np.random.uniform(low=wall.x_v[0]+max(radii), 
+                       high=wall.x_v[1]-max(radii), size=[tot_balls,1])
+p2 = np.random.uniform(low=wall.y_v[0]+max(radii), 
+                       high=wall.y_v[1]-max(radii), size=[tot_balls,1])
 p = np.concatenate((p1,p2), axis=1)
 v = np.random.uniform(low=-0.5, high=0.5, size=[tot_balls,2])
 
-
+#TODO check if balls are inside/outside of box
 
 # Initialise time
 t = 0
@@ -170,12 +243,9 @@ def step():
     t_col = t_collide(p,v,size_arr)
     
     # Find collision times for vertical walls
-    t_2wall = nanarr([tot_balls,n_wall])
-    for j in range(n_wall):
-        if j == n_wall:
-            w_ends = w_coord[[j,1],:]
-        else:
-            w_ends = w_coord[j:j+1]
+    t_2wall = nanarr([tot_balls,wall.n])
+    for j in range(wall.n):
+        w_ends = wall.co[j:j+1]
         for i in range(tot_balls):
             t_2wall[i,j] = t_wall(p[i],v[i],size_arr[i],w_ends)
     
@@ -270,10 +340,12 @@ def step():
         """
         
         #Temporary wall code
-        for j in range(n_wall):
+        for j in range(wall.n):
             if np.sum(t_2wall == t_min) > 0:
                 ii = np.where(t_2wall[:,j] == t_min)
+                #This is only for box case
                 v[ii,(j+1)%2] = -v[ii,(j+1)%2]
+                #TODO make v_wall routine
                 
                 
         """
@@ -311,7 +383,7 @@ def step():
     
 fig = plt.figure(figsize=(6,6))
 ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, 
-        xlim=(min(walls.x_v)-1, max(walls.x_v)+1), ylim=(min(walls.x_v)-1, max(walls.y_v)+1))
+xlim=(min(wall.x_v)-1, max(wall.x_v)+1), ylim=(min(wall.x_v)-1, max(wall.y_v)+1))
 
 # Enter the locations of the particles
 particles, = ax.plot([], [], 'bo', ms=5.)
@@ -325,7 +397,7 @@ pressure_text = ax.text(0.025, 0.83, '', transform=ax.transAxes)
 avg_press_text = ax.text(0.025, 0.78, '', transform=ax.transAxes)
 
 #Make box boundary (manually set for now, should automate later)
-rect = plt.Rectangle([walls.x_v[0],walls.y_v[0]], walls.x_v[1] - walls.x_v[0], walls.y_v[1] - walls.y_v[0], lw=2, fc='none')
+rect = plt.Rectangle([wall.x_v[0],wall.y_v[0]], wall.x_v[1] - wall.x_v[0], wall.y_v[1] - wall.y_v[0], lw=2, fc='none')
 
 ax.add_patch(rect)
 
