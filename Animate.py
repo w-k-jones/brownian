@@ -38,6 +38,8 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from brownian_tools import *
+from wall_shape import wall_shape
+from wall_shape import wall_modifier
 
 """
 Define # of dimensions
