@@ -28,9 +28,9 @@ class system:
             
         else:
             if t_2col > t_2wall & t_2wall < self.t_step:
-            t +=t_2wall
-            ball.p += ball.v*t_2wall
-            wall.dv_wall(ball)
+                t +=t_2wall
+                ball.p += ball.v*t_2wall
+                wall.dv_wall(ball)
             
             else:
                 ball.p += ball.v*t_step
