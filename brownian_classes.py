@@ -173,6 +173,9 @@ class wall_shape:
                        * np.reshape(self.norm,[self.n,self.nd]),axis=1)
         
         t = p_rel/v_rel
+        
+        r_a = np.absolute(r_in/v_rel[t>=0])
+        
         t[t>=0] = t[t>=0] - np.absolute(r_in/v_rel[t>=0])
         t[t<0] = t[t<0] + np.absolute(r_in/v_rel[t<0])
         
@@ -195,19 +198,17 @@ class wall_shape:
         return chk
         
         
-    def dv_wall(self, ball, i_ball, i_wall):
+    def dv_wall(self, ball):
         if ball.nd > self.nd:
-            v_b = ball.v[0:self.nd,i_ball]
-            v_b[-1] = (np.sum((ball.v[self.nd-1:,i_ball])**2,axis=1))**0.5
+            v_b = ball.v[0:self.nd,self.i_ball]
+            v_b[-1] = (np.sum((ball.v[self.nd-1:,self.i_ball])**2,axis=1))**0.5
             
         else:
-            v_b = ball.v[:,i_ball]
+            v_b = ball.v[self.i_ball]
         
-        dv = np.sum(v_b*self.norm,axis=1)*self.norm[i_wall]
+        dv = np.sum(v_b*self.norm[self.i_wall],axis=1)*self.norm[self.i_wall]
         
-        new_vel = ball.v - 2*dv
-        
-        return new_vel
+        ball.v[self.i_ball] = ball.v[self.i_ball] - 2*dv
 
     
 class balls:
@@ -290,3 +291,17 @@ class balls:
         self.j_ball = self.j_arr[wh]
 
         return t_min,self.i_arr[wh],self.j_arr[wh]
+
+    def dv_col(self):
+        dij = self.p[self.j_ball] - self.p[self.i_ball]
+        rij = dij/(np.sum(dij**2)**0.5)
+        dm = self.m[self.i_ball]/self.m[self.j_ball]
+
+        u = np.sum((self.v[self.i_ball]-self.v[self.j_ball])*rij)
+        
+        v = ((dm-1)*u)/(1+dm)
+        dv = v - u
+        
+        v[self.i_ball] = v[self.i_ball] + dv*rij
+        v[self.j_ball] = v[self.j_ball] - dm*dv*rij
+        
