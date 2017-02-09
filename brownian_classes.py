@@ -174,10 +174,9 @@ class wall_shape:
         
         t = p_rel/v_rel
         
-        r_a = np.absolute(r_in/v_rel[t>=0])
+        r_a = np.absolute(r_in/v_rel)
         
-        t[t>=0] = t[t>=0] - np.absolute(r_in/v_rel[t>=0])
-        t[t<0] = t[t<0] + np.absolute(r_in/v_rel[t<0])
+        t -= r_a
         
         p_par = np.sum((-self.co + np.reshape(p_b,[1,self.nd]))
                         * np.reshape(self.vec,[self.n,self.nd]),axis=1)
@@ -194,6 +193,12 @@ class wall_shape:
 
         chk = np.sum(np.isfinite(t),axis=0) % 2
         #1 if inside, 0 if outside
+        
+        #check if on a line
+        online = t/(t+2*r_a)
+        online = np.sum(t<0)
+        if online > 0:
+            chk = 0
 
         return chk
         
@@ -243,7 +248,7 @@ class balls:
             new_p = np.reshape(new_p,[1,2])
             new_v = np.random.uniform(low=-0.5, high=0.5, size=[1,2])
             
-            if wall.isinside(new_p,np.array([1,0]),self.r[j]) == 1:
+            if wall.isinside(new_p,new_v,self.r[j]) == 1:
                 """if (np.nanmin(np.sum((self.p - np.reshape(new_p,[1,self.nd]))**2) 
                            - (self.r + self.r[j]))) < 0:
                     
@@ -267,7 +272,7 @@ class balls:
                 
             
     def t2col(self):
-        temp = np.full(self.i_arr.size,np.nan)
+        temp = np.full([self.i_arr.size,2],np.nan)
 
         a = np.sum((self.v[self.i_arr] - self.v[self.j_arr])**2, axis=1)
         b = 2*np.sum((self.v[self.i_arr] - self.v[self.j_arr])
@@ -299,9 +304,9 @@ class balls:
 
         u = np.sum((self.v[self.i_ball]-self.v[self.j_ball])*rij)
         
-        v = ((dm-1)*u)/(1+dm)
-        dv = v - u
+        w = ((dm-1)*u)/(1+dm)
+        dv = w - u
         
-        v[self.i_ball] = v[self.i_ball] + dv*rij
-        v[self.j_ball] = v[self.j_ball] - dm*dv*rij
+        self.v[self.i_ball] = self.v[self.i_ball] + dv*rij
+        self.v[self.j_ball] = self.v[self.j_ball] - dm*dv*rij
         
