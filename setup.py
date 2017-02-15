@@ -28,4 +28,4 @@ wal = brw.wall_shape(in_co)
 bal = brw.balls(100,0.01,1,2,wal)
 sys = brs.system(wal,bal)
 
-sys.run_plt(1000)
+sys.run_plt(200)

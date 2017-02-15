@@ -126,7 +126,7 @@ class wall_shape:
         temp[wh,1] = (-b[wh]-chk[wh]**0.5)/(2*np.tile(a,[1,self.n])[wh])
         temp = np.nanmin(temp, axis=2)
         #If negative solution is in the past, so set as NaN to ignore.
-        temp[temp < 1E-10] = np.nan
+        temp[temp<=0] = np.nan
         
         #Find smallest positive solution
         t_min = np.nanmin(temp)
@@ -142,13 +142,18 @@ class wall_shape:
     def dv_corn(self,ball):
         #Calculate normal vector from ball to vertex
         t_norm = self.co[self.i_corn] - ball.p[self.i_ball_c]
-        t_norm = t_norm/(np.sum(t_norm**2))**0.5
+        #Normalise
+        t_norm = t_norm/(np.sum(t_norm**2)**0.5)
         
         #Dot product of ball velocity with normal
         dv = np.sum(ball.v[self.i_ball_c]*t_norm)
         
+        print ball.v[self.i_ball_c]
+        print t_norm
+        print dv *t_norm
         #change ball velocity by 2x dv in direction of -normal
-        ball.p[self.i_ball_c] -= 2*dv*t_norm
+        ball.v[self.i_ball_c] -= 2*dv*t_norm
+        print ball.v[self.i_ball_c]
         
     
     """Calculate time to next collision between ball and wall"""
@@ -198,7 +203,7 @@ class wall_shape:
         t[p_col > 1] = np.nan
                                  
         #Negative time is in the past so ignore
-        t[t<=1E-10] = np.nan
+        t[t<=0] = np.nan
                                  
         #Calculate time to next collision
         t_min = np.nanmin(t)
@@ -248,19 +253,35 @@ class wall_shape:
 
         t[p_col < 0] = np.nan
         t[p_col > 1] = np.nan
-
-        #check if on a line
-        on_line = t/(t+2*r_a)
-        on_line = np.sum(on_line<0)
-                                         
+                  
         t[t<0] = np.nan
 
-        chk = np.sum(np.isfinite(t),axis=0) % 2
+        chk = np.sum(np.isfinite(t)) % 2
         #1 if inside, 0 if outside
-        
-        if on_line > 0:
-            chk = 0
 
+        if chk == 1:
+            #double check backwards
+            t2 = p_rel/(-v_rel) - r_a
+            
+            p_col2 = (p_par -v_par*t2)/self.vlen
+            t2[p_col2 < 0] = np.nan
+            t2[p_col2 > 1] = np.nan
+            t2[t2<0] = np.nan
+            chk = np.sum(np.isfinite(t2)) % 2    
+        """
+            #check for corner collision
+            if chk == 1:
+                #Calculate quadratic a,b,c coefficients (similar to 2 ball collision)
+                a = np.sum(v_b**2)
+                b = 2*np.sum((v_b*p_b)- self.co, axis=1)
+                c = np.sum((p_b-self.co)**2, axis=1) - r_in
+    
+                #Calculate discriminant
+                chk_c = b**2 - 4*a*c
+                #print chk_c
+                if np.sum(chk_c >= 0) > 0:
+                    chk = 0
+        """
         return chk
         
     """Change ball velocity after collision with wall"""

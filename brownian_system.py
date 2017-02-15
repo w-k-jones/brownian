@@ -70,7 +70,7 @@ class system:
     def run_plt(self,n_step):
         for i in range(n_step):
             self.step()
-            if i % 50 == 0:
+            if i % 10 == 0:
                 fig = plt.figure(figsize=(6,6))
                 ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, 
                                      xlim=(self.wall.xlim[0]-0.1,self.wall.xlim[1]+0.1),
