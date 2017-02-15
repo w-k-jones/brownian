@@ -2,15 +2,27 @@
 """
 Created on Wed Dec 07 10:26:32 2016
 
-@author: pc
+@author: wj
+
+Module containing classes 'wall_shape' and 'balls' for brownian system. 
+Wall_shape is initialised using a 2d array of co-ordinates of the wall 
+vertices. Balls is initialised using arrays/scalars of the ball #s, radii and 
+masses and the wall object of the system it is contained within.
+
+History:
+    10/02/2017, wj: Commenting, adding corner code.
 """
 
 import numpy as np
 
 class wall_shape:
+    #Wall_shape class, contains info on wall properties and the functions for 
+    #calculating times to collisions with walls and the resultant velocity 
+    #change.
+    
     """Get normalised wall vector for each wall"""
     def get_vec(self):
-        #self.vec = np.full([self.n,self.nd],np.nan)
+        #Caculates unit vector of each wall and the length.
         self.vec = self.co_plt[1:] - self.co_plt[0:-1]
         self.vlen = np.sum(self.vec**2,axis=1)**0.5
         
@@ -36,12 +48,15 @@ class wall_shape:
         #no. of dimensions
         self.nd = np.shape(self.co)[1]
         
-        #Check if first and last coordinates are the same (should be), if not 
-        #stick first coordinate on the bottom of the coordinate array
+        #Check if first and last coordinates are the same. If they are remove 
+        #last co-ordinate for list of vertices (.co)
         if np.sum(self.co[-1] != self.co[0]) == 0:
             self.co = self.co[0:-1]
         
+        #list of vertices for plotting, needs first co-ordinate appended on the end
         self.co_plt = np.concatenate((self.co, np.reshape(self.co[0],[1,self.nd])), axis=0)
+        
+        #note, done this way to avoid a long if expression
         
         #no. of walls = #coords in closed shape
         self.n = np.shape(self.co)[0]
@@ -56,8 +71,11 @@ class wall_shape:
         #Friction value (proportionally reduces parallel v)
         self.fb = np.full(self.n,0.)
         
+        #x and y limits - smallest and largest co-ords in each direction
         self.xlim = np.array([np.nanmin(self.co[:,0]),np.nanmax(self.co[:,0])])
         self.ylim = np.array([np.nanmin(self.co[:,1]),np.nanmax(self.co[:,1])])
+        
+        #get wall vectors and normals.
         self.vec = self.get_vec()
         self.norm = self.get_norm()
         
@@ -71,42 +89,69 @@ class wall_shape:
         #now set all values
         self.set_2d()
 
-    #old time of collision code
-    """
-    def t_2wall(self, pos, vel, size):
-        #Input dimensions (number of walls and number of particles)
-        di = np.size(self.co)[0]-1
-        dj = np.size(pos)[0]
-        
-        t = np.full([dj,di], np.nan)
-        
-        for i in np.arange(di):
-            for j in np.arange(dj):
-                
-                #position from first corner of wall
-                dp0 = pos[i]-self.co[j]
-                #normal distance to wall
-                p_norm = np.sum(dp0*self.norm[j])
-                #normal velocity to wall
-                v_norm = np.sum(vel[i]*self.norm[j])
-                #time to wall
-                dt = np.nanmin([-(p_norm-size[i])/v_norm, 
-                                -(p_norm+size[i])/v_norm])
-                
-                if dt > 1E-10:
-                    #Parallel postion to wall
-                    p_par = np.sum(dp0*self.vec[j])
-                    #Velocity parallel to wall
-                    v_par = np.sum(vel[i]*self.vec[j])
-                    #position along wall when colliding
-                    p_wall_col = p_par +dt*v_par
-                    
-                    if p_wall_col >= 0 or p_wall_col <= self.vlen[j]:
-                        t[j,i] = dt
-                    
-        return t
-    """
     
+    """calculates time to collision with corner in case of reflex angles"""
+    def t2corn(self, ball):
+        #check for different dimensionality (e.g. cylinder)
+        if ball.nd > self.nd:
+            p_b = ball.p[0:self.nd]
+            p_b[-1] = (np.sum((ball.p[self.nd-1:])**2,axis=1))**0.5
+            
+            v_b = ball.v[0:self.nd]
+            v_b[-1] = (np.sum((ball.v[self.nd-1:])**2,axis=1))**0.5
+            
+        else:
+            p_b = ball.p
+            v_b = ball.v
+        
+        #Define temporry array for times
+        temp = np.full([ball.n,self.n,2],np.nan)
+
+        #Calculate quadratic a,b,c coefficients (similar to 2 ball collision)
+        a = np.reshape(np.sum((v_b)**2, axis=1),[ball.n,1])
+        b = 2*np.sum(np.reshape(v_b,[ball.n,1,self.nd])* 
+                     (np.reshape(p_b,[ball.n,1,self.nd]) 
+                      - np.reshape(self.co,[1,self.n,self.nd])), axis=2)
+        c = (np.sum((np.reshape(p_b,[ball.n,1,self.nd])
+                    - np.reshape(self.co,[1,self.n,self.nd]))**2, axis=2)
+                    - (np.reshape(ball.r**2,[ball.n,1])))
+    
+        #Calculate discriminant
+        chk = b**2 - 4*a*c
+        wh = chk >= 0
+        ti,tj = np.where(wh)
+        
+        #Find both solutions and take smallest (first collision)
+        temp[wh,0] = (-b[wh]+chk[wh]**0.5)/(2*np.tile(a,[1,self.n])[wh])
+        temp[wh,1] = (-b[wh]-chk[wh]**0.5)/(2*np.tile(a,[1,self.n])[wh])
+        temp = np.nanmin(temp, axis=2)
+        #If negative solution is in the past, so set as NaN to ignore.
+        temp[temp < 1E-10] = np.nan
+        
+        #Find smallest positive solution
+        t_min = np.nanmin(temp)
+        
+        #Set values for ball and corner indexes to use in changing velocities.
+        self.i_ball_c = np.where(temp == t_min)[0]
+        self.i_corn = np.where(temp == t_min)[1]
+
+        #Return time
+        return t_min#,self.i_arr[wh],self.j_arr[wh]
+        
+    """Change velocity of ball after corner collision"""
+    def dv_corn(self,ball):
+        #Calculate normal vector from ball to vertex
+        t_norm = self.co[self.i_corn] - ball.p[self.i_ball_c]
+        t_norm = t_norm/(np.sum(t_norm**2))**0.5
+        
+        #Dot product of ball velocity with normal
+        dv = np.sum(ball.v[self.i_ball_c]*t_norm)
+        
+        #change ball velocity by 2x dv in direction of -normal
+        ball.p[self.i_ball_c] -= 2*dv*t_norm
+        
+    
+    """Calculate time to next collision between ball and wall"""
     #new, vectorised and object code
     def t2wall(self, ball):
         #check for different dimensionality (e.g. cylinder)
@@ -121,6 +166,7 @@ class wall_shape:
             p_b = ball.p
             v_b = ball.v
             
+        #Calculate relative normal positions and velocities
         p_rel = np.sum((np.reshape(self.co,[1,self.n,self.nd]) 
                         - np.reshape(p_b,[ball.n,1,self.nd]))
                         * np.reshape(self.norm,[1,self.n,self.nd]),axis=2)
@@ -128,8 +174,14 @@ class wall_shape:
         v_rel = np.sum((np.reshape(v_b,[ball.n,1,self.nd]))
                         * np.reshape(self.norm,[1,self.n,self.nd]),axis=2)
         
+        #Time to collision with infinite length wall
+        #Subtract time taken for ball to travel one radius to account for size 
+        #of ball
         t = p_rel/v_rel - np.abs(np.reshape(ball.r,[ball.n,1])/v_rel)
         
+        #Now calculate position along length of wall at collision
+        
+        #Parallel position and velocity components
         p_par = np.sum((-np.reshape(self.co,[1,self.n,self.nd]) 
                         + np.reshape(p_b,[ball.n,1,self.nd]))
                         * np.reshape(self.vec,[1,self.n,self.nd]),axis=2)
@@ -137,22 +189,30 @@ class wall_shape:
         v_par = np.sum((np.reshape(v_b,[ball.n,1,self.nd]))
                         * np.reshape(self.vec,[1,self.n,self.nd]),axis=2)
         
+        #Position at collision divided by wall length
         p_col = (p_par + v_par*t)/np.reshape(self.vlen,[1,self.n])
         
+        #If >1 or <0 then collision is not along the length of the wall, so
+        #ignore
         t[p_col < 0] = np.nan
         t[p_col > 1] = np.nan
                                  
-        t[t<0] = np.nan
+        #Negative time is in the past so ignore
+        t[t<=1E-10] = np.nan
                                  
+        #Calculate time to next collision
         t_min = np.nanmin(t)
         
+        #Find indices of ball and wall section and save for dv calculation
         [i_ball,i_wall] = np.where(t == t_min)
-        
         self.i_ball = i_ball
         self.i_wall = i_wall
         
-        return t_min,i_ball,i_wall
+        #return next time
+        return t_min#,i_ball,i_wall
         
+    """Calculate if a ball is inside the system"""
+    #TODO: debug ball appearing half way through line on way into system.
     def isinside(self,p_in,v_in,r_in):
         #repeats t2wall but for set p,v
         if p_in.size > self.nd:
@@ -188,29 +248,32 @@ class wall_shape:
 
         t[p_col < 0] = np.nan
         t[p_col > 1] = np.nan
-                                 
+
+        #check if on a line
+        on_line = t/(t+2*r_a)
+        on_line = np.sum(on_line<0)
+                                         
         t[t<0] = np.nan
 
         chk = np.sum(np.isfinite(t),axis=0) % 2
         #1 if inside, 0 if outside
         
-        #check if on a line
-        online = t/(t+2*r_a)
-        online = np.sum(t<0)
-        if online > 0:
+        if on_line > 0:
             chk = 0
 
         return chk
         
-        
+    """Change ball velocity after collision with wall"""
     def dv_wall(self, ball):
+        #Account for different dimensions
         if ball.nd > self.nd:
-            v_b = ball.v[0:self.nd,self.i_ball]
-            v_b[-1] = (np.sum((ball.v[self.nd-1:,self.i_ball])**2,axis=1))**0.5
+            v_b = ball.v[self.i_ball,0:self.nd]
+            v_b[-1] = (np.sum((ball.v[self.i_ball,self.nd-1:])**2,axis=1))**0.5
             
         else:
             v_b = ball.v[self.i_ball]
         
+        #Calculate normal dv and subtract 2x
         dv = np.sum(v_b*self.norm[self.i_wall],axis=1)*self.norm[self.i_wall]
         
         ball.v[self.i_ball] = ball.v[self.i_ball] - 2*dv
@@ -295,7 +358,7 @@ class balls:
         self.i_ball = self.i_arr[wh]
         self.j_ball = self.j_arr[wh]
 
-        return t_min,self.i_arr[wh],self.j_arr[wh]
+        return t_min#,self.i_arr[wh],self.j_arr[wh]
 
     def dv_col(self):
         dij = self.p[self.j_ball] - self.p[self.i_ball]
