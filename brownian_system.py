@@ -25,7 +25,7 @@ class system:
         self.min_t = np.nanmin([t_2col,t_2wall,t_2corn])
         
         if self.min_t <= self.t_step:
-            self.t +=t_2col
+            self.t +=self.min_t
             self.ball.p += self.ball.v*self.min_t
             if t_2col == self.min_t:
                 self.ball.dv_col()
