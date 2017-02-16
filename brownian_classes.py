@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Dec 07 10:26:32 2016
-
 @author: wj
-
 Module containing classes 'wall_shape' and 'balls' for brownian system. 
 Wall_shape is initialised using a 2d array of co-ordinates of the wall 
 vertices. Balls is initialised using arrays/scalars of the ball #s, radii and 
 masses and the wall object of the system it is contained within.
-
 History:
     10/02/2017, wj: Commenting, adding corner code.
+    16/02/2017, lm; Small adjustments so can run properly with animation file
 """
 
 import numpy as np
@@ -341,8 +339,12 @@ class balls:
         if np.size(n_in) == 1:
             self.r = np.full(n_in, r_in)
             self.m = np.full(n_in, m_in)
+            self.r2 = np.array([r_in])
+            self.n_balls = np.array([n_in])
         
         else:
+            self.r2 = r_in
+            self.n_balls = n_in
             for i in range(np.size(n_in)):
                 if i == 0:
                     self.r = np.full(n_in[0], r_in[0])
@@ -383,9 +385,12 @@ class balls:
                 j+=1
                 #print j
             #else: print "outside"
+<<<<<<< HEAD
             
         print 'Particles initialised: ',j
         print 'Attempts: ',cnt
+=======
+>>>>>>> origin/new_classes
                     
         a = np.arange(self.n)
         a = np.tile(a,[self.n,1])
@@ -434,4 +439,3 @@ class balls:
         
         self.v[self.i_ball] = self.v[self.i_ball] + dv*rij
         self.v[self.j_ball] = self.v[self.j_ball] - dm*dv*rij
-        

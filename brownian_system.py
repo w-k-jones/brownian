@@ -2,7 +2,9 @@
 """
 Created on Wed Jan 25 09:50:23 2017
 
-@author: pc
+@author: wj
+History:
+    16/02/2017, lm; Small adjustments so can run properly with animation file
 """
 #
 import numpy as np
@@ -37,22 +39,33 @@ class system:
             self.ball.p += self.ball.v*self.min_t
             if t_2col == self.min_t:
                 self.ball.dv_col()
+<<<<<<< HEAD
                 self.b +=1
+=======
+>>>>>>> origin/new_classes
                 #print 'b'
                 
             if t_2wall == self.min_t:
                 self.wall.dv_wall(self.ball)
+<<<<<<< HEAD
                 self.w +=1
+=======
+>>>>>>> origin/new_classes
                 #print 'w'
                 
             if t_2corn == self.min_t:
                 self.wall.dv_corn(self.ball)
+<<<<<<< HEAD
                 self.c +=1
+=======
+>>>>>>> origin/new_classes
                 #print 'c'
             
         else:
             self.t +=self.t_step
             self.ball.p += self.ball.v*self.t_step
+            
+        return self.ball.p, self.t
             
     def plt(self):
         fig = plt.figure(figsize=(6,6))
