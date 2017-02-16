@@ -11,11 +11,19 @@ import matplotlib.pyplot as plt
 
 class system:
     def __init__(self,wall_in,ball_in):
+        print '>>>Initialising System'
+        print 'Inputing wall properties'
         self.wall = wall_in
+        print 'Inputing particle properties'
         self.ball = ball_in
+        print 'Setting system time'
         self.t = 0
         self.t_step = 0.1
         self.t_max = 100
+        
+        self.b = 0
+        self.c = 0
+        self.w = 0
         
     def step(self):
         t_2col = self.ball.t2col()
@@ -29,15 +37,18 @@ class system:
             self.ball.p += self.ball.v*self.min_t
             if t_2col == self.min_t:
                 self.ball.dv_col()
-                print 'b'
+                self.b +=1
+                #print 'b'
                 
             if t_2wall == self.min_t:
                 self.wall.dv_wall(self.ball)
-                print 'w'
+                self.w +=1
+                #print 'w'
                 
             if t_2corn == self.min_t:
                 self.wall.dv_corn(self.ball)
-                print 'c'
+                self.c +=1
+                #print 'c'
             
         else:
             self.t +=self.t_step
@@ -68,9 +79,28 @@ class system:
         return mo
         
     def run_plt(self,n_step):
+        print 'Running system for ',n_step,' steps'
+        
+        print 'Recording momentum, angular momentum and temperature'
+        self.T = np.full([n_step+1],np.nan)
+        self.T[0] = np.mean(np.std(self.ball.v,axis=0)**2)
+        
+        self.mv_tot = np.full([n_step+1,self.ball.nd],np.nan)
+        self.mv_tot[0] = np.sum(self.ball.v
+                                *np.reshape(self.ball.m,[self.ball.n,1])
+                                ,axis=0)
+        
+        #self.mv_ang = np.full([n_step+1],np.nan)
+        #self.mv_ang[0] = 
+        
+        
         for i in range(n_step):
             self.step()
-            if i % 10 == 0:
+            self.T[i+1] = np.mean(np.std(self.ball.v,axis=0)**2)
+            self.mv_tot[i+1] = np.sum(self.ball.v
+                                       *np.reshape(self.ball.m,[self.ball.n,1])
+                                       ,axis=0)
+            if i % 100 == 0:
                 fig = plt.figure(figsize=(6,6))
                 ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, 
                                      xlim=(self.wall.xlim[0]-0.1,self.wall.xlim[1]+0.1),
@@ -81,6 +111,19 @@ class system:
                               *fig.get_figwidth()/(ax.get_xlim()[1]-ax.get_xlim()[0])
                               *2*self.ball.r[0])
                 fig.show
+                
+        print 'Particle collisions: ',self.b
+        print 'Wall collisions: ',self.w
+        print 'Corner collisions: ',self.c
+        
+        print 'Plotting temperature and momentum'
+        fig = plt.figure(figsize=(6,6))
+        ax2 = fig.add_subplot(211)
+        ax2.plot(np.arange(n_step+1),self.T)
+        ax3 = fig.add_subplot(212)
+        ax3.plot(np.arange(n_step+1),self.mv_tot)
+        
+        print 'System time elapsed: ',self.t
             
         
     """    

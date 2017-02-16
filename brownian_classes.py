@@ -42,11 +42,24 @@ class wall_shape:
         #                                           [1, 0]
         
         return self.norm
+        
+    """
+    Calculate area contained within wall
+    """
+    def get_A(self):
+        tmp = (-self.vec[:,0]*self.co[:,1]*self.vlen
+               +self.vec[:,1]*self.co[:,0]*self.vlen)
+    
+        self.A = 0.5*np.sum(tmp)
+        
+        #print self.A
     
     #Set wall coords and find vectors for 2d case
     def set_2d(self):
         #no. of dimensions
         self.nd = np.shape(self.co)[1]
+
+        print 'Dimensionality = ',self.nd
         
         #Check if first and last coordinates are the same. If they are remove 
         #last co-ordinate for list of vertices (.co)
@@ -60,6 +73,7 @@ class wall_shape:
         
         #no. of walls = #coords in closed shape
         self.n = np.shape(self.co)[0]
+        print 'Vertices = ',self.n
 
         #TODO: add check for corresponding periodic boundary - subroutine needed
         #Periodic boundary flag
@@ -74,10 +88,17 @@ class wall_shape:
         #x and y limits - smallest and largest co-ords in each direction
         self.xlim = np.array([np.nanmin(self.co[:,0]),np.nanmax(self.co[:,0])])
         self.ylim = np.array([np.nanmin(self.co[:,1]),np.nanmax(self.co[:,1])])
+        print 'setting system limits'
         
         #get wall vectors and normals.
+        print 'finding wall vectors'
         self.vec = self.get_vec()
+        print 'finding wall normal vectors'
         self.norm = self.get_norm()
+        self.get_A()
+        print 'System area = ',self.A
+        
+   
         
     """
     Initialise with coordinate array
@@ -86,8 +107,15 @@ class wall_shape:
         #corner co-ords
         self.co = coordinate_array
         
+        print '>>>Initialising wall properties'
+        
         #now set all values
         self.set_2d()
+        
+        print '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+    
+        
+        
 
     
     """calculates time to collision with corner in case of reflex angles"""
@@ -148,12 +176,12 @@ class wall_shape:
         #Dot product of ball velocity with normal
         dv = np.sum(ball.v[self.i_ball_c]*t_norm)
         
-        print ball.v[self.i_ball_c]
-        print t_norm
-        print dv *t_norm
+        #print ball.v[self.i_ball_c]
+        #print t_norm
+        #print dv *t_norm
         #change ball velocity by 2x dv in direction of -normal
         ball.v[self.i_ball_c] -= 2*dv*t_norm
-        print ball.v[self.i_ball_c]
+        #print ball.v[self.i_ball_c]
         
     
     """Calculate time to next collision between ball and wall"""
@@ -303,9 +331,13 @@ class wall_shape:
 class balls:
     #generate balls
     def __init__(self,n_in,r_in,m_in,nd,wall):
+        print '>>>Initialising particle properties'
         self.nd = nd
+        print 'Dimensionality = ',self.nd
         self.n = np.sum(n_in)
+        print 'Number of particles = ',self.n
         
+        print 'setting particle sizes and masses'
         if np.size(n_in) == 1:
             self.r = np.full(n_in, r_in)
             self.m = np.full(n_in, m_in)
@@ -319,11 +351,15 @@ class balls:
                     self.r = np.concatenate((self.r, np.full(n_in[i], r_in[i])))
                     self.m = np.concatenate((self.m, np.full(n_in[i], m_in[i])))
         
+        print 'Initialising position and velocity'
         self.p = np.full([self.n,self.nd],np.nan)
         self.v = np.full([self.n,self.nd],np.nan)  
         
         j = 0
+        cnt = 0
         while j < self.n:
+            
+            cnt +=1
             
             new_p = np.array([np.random.uniform(low=wall.xlim[0]+self.r[j], 
                                high=wall.xlim[1]-self.r[j]),
@@ -345,14 +381,19 @@ class balls:
                 self.p[j] = new_p
                 self.v[j] = new_v
                 j+=1
-                print j
-            else: print "outside"
+                #print j
+            #else: print "outside"
+            
+        print 'Particles initialised: ',j
+        print 'Attempts: ',cnt
                     
         a = np.arange(self.n)
         a = np.tile(a,[self.n,1])
         b = a.T
         self.i_arr = a[a>b]
         self.j_arr = b[a>b]
+
+        print '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
                 
             
     def t2col(self):
