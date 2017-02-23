@@ -25,6 +25,7 @@ in_co = np.array([[0,0],
                   [0,1]])
 
 #co-ords for opposing sawtooth
+"""
 in_co = np.array([[0,0],
                   [0.2,0.2],
                   [0.2,0],
@@ -45,9 +46,11 @@ in_co = np.array([[0,0],
                   [0.2,0.8],
                   [0.2,1],
                   [0,0.8]])
+"""
 
 wal = brw.wall_shape(in_co)
+#wal.T[:] = 0.1
 bal = brw.balls(100,0.01,1,2,wal)
 sys = brs.system(wal,bal)
 
-sys.run_plt(2000)
+sys.run_plt(20000)

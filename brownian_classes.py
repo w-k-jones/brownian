@@ -79,9 +79,15 @@ class wall_shape:
         #Index of corresponding opposite boundary
         self.pb_ind = np.full(self.n,0)
         #Roughness value (randomly rotates wall vector for collision)
+        #angle of 1 s.d. note, angle cannot be more than pi/4
         self.rb = np.full(self.n,0.)
         #Friction value (proportionally reduces parallel v)
         self.fb = np.full(self.n,0.)
+        #wall temperture
+        self.T = np.full(self.n,np.nan)
+        #wall pressure
+        self.P = np.full(self.n,0.)
+        
         
         #x and y limits - smallest and largest co-ords in each direction
         self.xlim = np.array([np.nanmin(self.co[:,0]),np.nanmax(self.co[:,0])])
@@ -171,15 +177,39 @@ class wall_shape:
         #Normalise
         t_norm = t_norm/(np.sum(t_norm**2)**0.5)
         
+        #adjust for roughness value
+        if self.rb[self.i_corn] > 0:
+            ang = np.pi
+            while ang > np.pi/4.:
+                ang = np.random.normal(loc=0.,scale=self.rb[self.i_corn])
+                
+            t_norm[0] = t_norm[0]*np.cos(ang) -t_norm[1]*np.sin(ang)
+            t_norm[1] = t_norm[0]*np.sin(ang) +t_norm[1]*np.cos(ang)
+        
         #Dot product of ball velocity with normal
         dv = np.sum(ball.v[self.i_ball_c]*t_norm)
+        
+        #adjust for wall temperature
+        if np.isfinite(self.T[self.i_corn]):
+            sig = (self.T[self.i_corn]/ball.m[self.i_ball_c])**2
+            dv_T = abs(np.random.normal(loc=0.,scale=sig))
+            #while dv_T/dv >= 0.5:
+                #dv_T = np.random.normal(sig)
+            
+            if dv <=0:
+                dv -=dv_T
+            else:
+                dv +=dv_T
+        else: dv = 2*dv
         
         #print ball.v[self.i_ball_c]
         #print t_norm
         #print dv *t_norm
         #change ball velocity by 2x dv in direction of -normal
-        ball.v[self.i_ball_c] -= 2*dv*t_norm
+        ball.v[self.i_ball_c] -= dv*t_norm
         #print ball.v[self.i_ball_c]
+        
+        return dv
         
     
     """Calculate time to next collision between ball and wall"""
@@ -319,11 +349,37 @@ class wall_shape:
             
         else:
             v_b = ball.v[self.i_ball]
+
+        #set temporary wall normal
+        t_norm = self.norm[self.i_wall]
+
+        #adjust for roughness value
+        if self.rb[self.i_wall] > 0:
+            ang = np.pi
+            while ang > np.pi/4.:
+                ang = np.random.normal(loc=0.,scale=self.rb[self.i_wall])
+                
+            t_norm[0] = t_norm[0]*np.cos(ang) -t_norm[1]*np.sin(ang)
+            t_norm[1] = t_norm[0]*np.sin(ang) +t_norm[1]*np.cos(ang)
+
+        #Calculate normal dv
+        dv = np.sum(v_b*t_norm)
+            
+        #adjust for wall temperature
+        if np.isfinite(self.T[self.i_wall]):
+            sig = (self.T[self.i_wall]/ball.m[self.i_ball])**2
+            dv_T = abs(np.random.normal(loc=0.,scale=sig))
+            if dv <= 0:
+                dv = dv-dv_T
+            else:
+                dv = dv+dv_T
+        else: dv = 2*dv
         
-        #Calculate normal dv and subtract 2x
-        dv = np.sum(v_b*self.norm[self.i_wall],axis=1)*self.norm[self.i_wall]
-        
-        ball.v[self.i_ball] = ball.v[self.i_ball] - 2*dv
+        ball.v[self.i_ball] = ball.v[self.i_ball] - dv*t_norm
+
+        self.P[self.i_wall] += ball.m[self.i_ball]*abs(dv)
+
+        return dv
 
     
 class balls:
@@ -363,12 +419,21 @@ class balls:
             
             cnt +=1
             
-            new_p = np.array([np.random.uniform(low=wall.xlim[0]+self.r[j], 
+            if self.nd == 2:
+                new_p = np.array([np.random.uniform(low=wall.xlim[0]+self.r[j], 
                                high=wall.xlim[1]-self.r[j]),
                               np.random.uniform(low=wall.ylim[0]+self.r[j], 
                                high=wall.ylim[1]-self.r[j])])
-            new_p = np.reshape(new_p,[1,2])
-            new_v = np.random.uniform(low=-0.5, high=0.5, size=[1,2])
+                new_p = np.reshape(new_p,[1,2])
+            elif self.nd == 3:
+                new_p = np.array([np.random.uniform(low=wall.xlim[0]+self.r[j], 
+                               high=wall.xlim[1]-self.r[j]),
+                              np.random.uniform(low=wall.ylim[0]+self.r[j], 
+                               high=wall.ylim[1]-self.r[j]),
+                              np.random.uniform(low=wall.ylim[0]+self.r[j], 
+                               high=wall.ylim[1]-self.r[j])])
+                new_p = np.reshape(new_p,[1,3])
+            new_v = np.random.normal(loc=0., scale=1, size=[1,2])
             
             if wall.isinside(new_p,new_v,self.r[j]) == 1:
                 """if (np.nanmin(np.sum((self.p - np.reshape(new_p,[1,self.nd]))**2) 
@@ -385,12 +450,12 @@ class balls:
                 j+=1
                 #print j
             #else: print "outside"
-<<<<<<< HEAD
+#<<<<<<< HEAD
             
         print 'Particles initialised: ',j
         print 'Attempts: ',cnt
-=======
->>>>>>> origin/new_classes
+#=======
+#>>>>>>> origin/new_classes
                     
         a = np.arange(self.n)
         a = np.tile(a,[self.n,1])

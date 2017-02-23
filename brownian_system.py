@@ -39,26 +39,26 @@ class system:
             self.ball.p += self.ball.v*self.min_t
             if t_2col == self.min_t:
                 self.ball.dv_col()
-<<<<<<< HEAD
+#<<<<<<< HEAD
                 self.b +=1
-=======
->>>>>>> origin/new_classes
+#=======
+#>>>>>>> origin/new_classes
                 #print 'b'
                 
             if t_2wall == self.min_t:
                 self.wall.dv_wall(self.ball)
-<<<<<<< HEAD
+#<<<<<<< HEAD
                 self.w +=1
-=======
->>>>>>> origin/new_classes
+#=======
+#>>>>>>> origin/new_classes
                 #print 'w'
                 
             if t_2corn == self.min_t:
                 self.wall.dv_corn(self.ball)
-<<<<<<< HEAD
+#<<<<<<< HEAD
                 self.c +=1
-=======
->>>>>>> origin/new_classes
+#=======
+#>>>>>>> origin/new_classes
                 #print 'c'
             
         else:
@@ -103,8 +103,12 @@ class system:
                                 *np.reshape(self.ball.m,[self.ball.n,1])
                                 ,axis=0)
         
-        #self.mv_ang = np.full([n_step+1],np.nan)
-        #self.mv_ang[0] = 
+        self.mv_ang = np.full([n_step+1],np.nan)
+        self.mv_ang[0] = np.sum(self.ball.m
+                                *(self.ball.v[:,0]*(self.ball.p[:,1]-0.5)
+                                  -self.ball.v[:,1]*(self.ball.p[:,0]-0.5)))
+        
+        self.P = np.copy(self.wall.P)
         
         
         for i in range(n_step):
@@ -113,7 +117,12 @@ class system:
             self.mv_tot[i+1] = np.sum(self.ball.v
                                        *np.reshape(self.ball.m,[self.ball.n,1])
                                        ,axis=0)
-            if i % 100 == 0:
+            self.mv_ang[i+1] = np.sum(self.ball.m
+                                *(self.ball.v[:,0]*(self.ball.p[:,1]-0.5)
+                                  -self.ball.v[:,1]*(self.ball.p[:,0]-0.5)))
+            
+            self.P = (self.wall.P/self.wall.vlen)/self.t
+            if i % 2000 == 0:
                 fig = plt.figure(figsize=(6,6))
                 ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, 
                                      xlim=(self.wall.xlim[0]-0.1,self.wall.xlim[1]+0.1),
@@ -131,10 +140,14 @@ class system:
         
         print 'Plotting temperature and momentum'
         fig = plt.figure(figsize=(6,6))
-        ax2 = fig.add_subplot(211)
+        ax2 = fig.add_subplot(221)
         ax2.plot(np.arange(n_step+1),self.T)
-        ax3 = fig.add_subplot(212)
+        ax3 = fig.add_subplot(222)
         ax3.plot(np.arange(n_step+1),self.mv_tot)
+        ax4 = fig.add_subplot(223)
+        ax4.plot(np.arange(n_step+1),self.mv_ang)
+        ax5 = fig.add_subplot(224)
+        ax5.plot(np.arange(self.wall.n),self.P)
         
         print 'System time elapsed: ',self.t
             
