@@ -277,23 +277,31 @@ class wall_shape:
     def isinside(self,p_in,v_in,r_in):
         #repeats t2wall but for set p,v
         if p_in.size > self.nd:
-            p_b = p_in[0:self.nd]
-            p_b[-1] = (np.sum((p_in[self.nd-1:])**2,axis=1))**0.5
+            #print self.nd
+            p_b = np.copy(p_in[0:self.nd])
+            #print p_b
+            p_b[-1] = (np.sum((p_in[(self.nd-1):])**2))**0.5
             
-            v_b = v_in[0:self.nd]
-            v_b[-1] = (np.sum((v_in[self.nd-1:])**2,axis=1))**0.5
+            v_b = np.copy(v_in[0:self.nd])
+            v_b[-1] = (np.sum((v_in[(self.nd-1):])**2))**0.5
+            #print p_b
             
         else:
             p_b = p_in
             v_b = v_in
             
+        print p_in
+        print p_b
         p_rel = np.sum((self.co - np.reshape(p_b,[1,self.nd]))
                        * np.reshape(self.norm,[self.n,self.nd]),axis=1)
         
         v_rel = np.sum(np.reshape(v_b,[1,self.nd])
                        * np.reshape(self.norm,[self.n,self.nd]),axis=1)
+                       
+        #print p_rel,v_rel
         
         t = p_rel/v_rel
+        #print t
         
         r_a = np.absolute(r_in/v_rel)
         
@@ -311,6 +319,8 @@ class wall_shape:
         t[p_col > 1] = np.nan
                   
         t[t<0] = np.nan
+        
+        print t
 
         chk = np.sum(np.isfinite(t)) % 2
         #1 if inside, 0 if outside
@@ -323,6 +333,7 @@ class wall_shape:
             t2[p_col2 < 0] = np.nan
             t2[p_col2 > 1] = np.nan
             t2[t2<0] = np.nan
+            print t2
             chk = np.sum(np.isfinite(t2)) % 2    
         """
             #check for corner collision
@@ -448,7 +459,7 @@ class balls:
                                high=wall.xlim[1]-self.r[j]),
                               np.random.uniform(low=wall.ylim[0]+self.r[j], 
                                high=wall.ylim[1]-self.r[j])])
-                new_p = np.reshape(new_p,[1,2])
+                #new_p = np.reshape(new_p,[1,2])
             elif self.nd == 3:
                 new_p = np.array([np.random.uniform(low=wall.xlim[0]+self.r[j], 
                                high=wall.xlim[1]-self.r[j]),
@@ -456,8 +467,13 @@ class balls:
                                high=wall.ylim[1]-self.r[j]),
                               np.random.uniform(low=wall.ylim[0]+self.r[j], 
                                high=wall.ylim[1]-self.r[j])])
+<<<<<<< HEAD
                 new_p = np.reshape(new_p,[1,3])
             new_v = np.random.normal(loc=0., scale=1.6, size=[1,2])
+=======
+                #new_p = np.reshape(new_p,[1,3])
+            new_v = np.random.normal(loc=0., scale=1, size=self.nd)
+>>>>>>> origin/new_classes
             
             if wall.isinside(new_p,new_v,self.r[j]) == 1:
                 """if (np.nanmin(np.sum((self.p - np.reshape(new_p,[1,self.nd]))**2) 
@@ -472,12 +488,13 @@ class balls:
                 self.p[j] = new_p
                 self.v[j] = new_v
                 j+=1
-                #print j
+                print j
             #else: print "outside"
 #<<<<<<< HEAD
             
         print 'Particles initialised: ',j
         print 'Attempts: ',cnt
+        #print self.p
 #=======
 #>>>>>>> origin/new_classes
                     
