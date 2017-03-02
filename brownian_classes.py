@@ -459,6 +459,7 @@ class balls:
                                high=wall.xlim[1]-self.r[j]),
                               np.random.uniform(low=wall.ylim[0]+self.r[j], 
                                high=wall.ylim[1]-self.r[j])])
+                new_v = np.random.normal(loc=0., scale=1.6, size=[1,2])
                 #new_p = np.reshape(new_p,[1,2])
             elif self.nd == 3:
                 new_p = np.array([np.random.uniform(low=wall.xlim[0]+self.r[j], 
@@ -467,13 +468,13 @@ class balls:
                                high=wall.ylim[1]-self.r[j]),
                               np.random.uniform(low=wall.ylim[0]+self.r[j], 
                                high=wall.ylim[1]-self.r[j])])
-<<<<<<< HEAD
+#<<<<<<< HEAD
                 new_p = np.reshape(new_p,[1,3])
-            new_v = np.random.normal(loc=0., scale=1.6, size=[1,2])
-=======
+                new_v = np.random.normal(loc=0., scale=1.6, size=[1,3])
+#=======
                 #new_p = np.reshape(new_p,[1,3])
             new_v = np.random.normal(loc=0., scale=1, size=self.nd)
->>>>>>> origin/new_classes
+#>>>>>>> origin/new_classes
             
             if wall.isinside(new_p,new_v,self.r[j]) == 1:
                 """if (np.nanmin(np.sum((self.p - np.reshape(new_p,[1,self.nd]))**2) 
