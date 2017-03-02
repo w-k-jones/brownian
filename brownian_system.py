@@ -26,6 +26,7 @@ class system:
         self.b = 0
         self.c = 0
         self.w = 0
+        self.type = 0
         
     def step(self):
         t_2col = self.ball.t2col()
@@ -41,6 +42,7 @@ class system:
                 self.ball.dv_col()
 #<<<<<<< HEAD
                 self.b +=1
+                self.type = 1
 #=======
 #>>>>>>> origin/new_classes
                 #print 'b'
@@ -49,6 +51,7 @@ class system:
                 self.wall.dv_wall(self.ball)
 #<<<<<<< HEAD
                 self.w +=1
+                self.type = 2
 #=======
 #>>>>>>> origin/new_classes
                 #print 'w'
@@ -57,6 +60,7 @@ class system:
                 self.wall.dv_corn(self.ball)
 #<<<<<<< HEAD
                 self.c +=1
+                self.type = 3
 #=======
 #>>>>>>> origin/new_classes
                 #print 'c'
@@ -64,6 +68,7 @@ class system:
         else:
             self.t +=self.t_step
             self.ball.p += self.ball.v*self.t_step
+            self.type = 0
             
         return self.ball.p, self.t
             
@@ -103,25 +108,46 @@ class system:
                                 *np.reshape(self.ball.m,[self.ball.n,1])
                                 ,axis=0)
         
+        v_tot = np.sum(self.ball.v,axis=0)
+        print v_tot
+        
+        self.KE = np.full([n_step+1,self.ball.nd],np.nan)
+        self.KE[0] = np.sum(self.ball.m)*np.sum(v_tot**2)/2
+        print self.KE[0]
+        
+        self.Q = np.full([n_step+1,self.ball.nd],np.nan)
+        self.Q[0] = np.sum(np.reshape(self.ball.m,[self.ball.n,1])
+                           *(self.ball.v -np.reshape(v_tot,[1,self.ball.nd]))**2)/2
+        print self.Q[0]
+        
         self.mv_ang = np.full([n_step+1],np.nan)
         self.mv_ang[0] = np.sum(self.ball.m
                                 *(self.ball.v[:,0]*(self.ball.p[:,1]-0.5)
                                   -self.ball.v[:,1]*(self.ball.p[:,0]-0.5)))
         
         self.P = np.copy(self.wall.P)
+        self.t_el =  np.full([n_step+1,self.ball.nd],0)
         
         
         for i in range(n_step):
             self.step()
+            self.t_el[i+1] = self.t
             self.T[i+1] = np.mean(np.std(self.ball.v,axis=0)**2)
             self.mv_tot[i+1] = np.sum(self.ball.v
                                        *np.reshape(self.ball.m,[self.ball.n,1])
                                        ,axis=0)
+            
             self.mv_ang[i+1] = np.sum(self.ball.m
                                 *(self.ball.v[:,0]*(self.ball.p[:,1]-0.5)
                                   -self.ball.v[:,1]*(self.ball.p[:,0]-0.5)))
             
             self.P = (self.wall.P/self.wall.vlen)/self.t
+
+            v_tot = np.sum(self.ball.v,axis=0)
+            self.KE[i+1] = np.sum(self.ball.m)*np.sum(v_tot**2)/2
+            self.Q[i+1] = np.sum(np.reshape(self.ball.m,[self.ball.n,1])
+                               *(self.ball.v -np.reshape(v_tot,[1,self.ball.nd]))**2)/2
+
             if i % 2000 == 0:
                 fig = plt.figure(figsize=(6,6))
                 ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, 
@@ -139,16 +165,40 @@ class system:
         print 'Corner collisions: ',self.c
         
         print 'Plotting temperature and momentum'
-        fig = plt.figure(figsize=(6,6))
-        ax2 = fig.add_subplot(221)
-        ax2.plot(np.arange(n_step+1),self.T)
-        ax3 = fig.add_subplot(222)
-        ax3.plot(np.arange(n_step+1),self.mv_tot)
-        ax4 = fig.add_subplot(223)
-        ax4.plot(np.arange(n_step+1),self.mv_ang)
-        ax5 = fig.add_subplot(224)
-        ax5.plot(np.arange(self.wall.n),self.P)
+        fig2 = plt.figure(figsize=(6,6))
+        ax2 = fig2.add_subplot(111)
+        ax2.plot(self.t_el,self.T*120)
+        ax2.set_title('System Temperature')
+        ax2.set_xlabel('Elapsed time /ps')
+        ax2.set_ylabel('Temperature /K')
+        fig3 = plt.figure(figsize=(6,6))
+        ax3 = fig3.add_subplot(111)
+        ax3.plot(self.t_el,self.mv_tot)
+        ax3.set_title('Linear Momentum')
+        ax3.set_xlabel('Elapsed time /ps')
+        ax3.set_ylabel('Momentum /AMU.m/s')
+        ax3.legend(['x component','y component'])
         
+        fig4 = plt.figure(figsize=(6,6))
+        ax4 = fig4.add_subplot(111)
+        ax4.plot(self.t_el,self.mv_ang)
+        ax4.set_xlabel('Elapsed time /ps')
+        ax4.set_ylabel('Angular Momentum /AMU/s')
+        """
+        ax5 = fig3.add_subplot(224)
+        ax5.plot(self.t_el,self.P)
+        """
+        
+        fig2.show
+        fig3.show
+        fig4.show
+        """
+        fig4 = plt.figure(figsize=(6,6))
+        ax6 = fig4.add_subplot(111)
+        ax6.plot(self.t_el,self.KE)
+        ax6.plot(self.t_el,self.Q)
+        fig3.show
+        """
         print 'System time elapsed: ',self.t
             
         

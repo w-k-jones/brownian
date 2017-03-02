@@ -64,7 +64,8 @@ in_co = np.array([[0,0],
                   [0,0.8]])
 
 wal = brw.wall_shape(in_co)
-bal = brw.balls([100,10],[0.01,0.05],[1,25],2,wal)
+wal.T[:] = 2
+bal = brw.balls(100,0.01,1,2,wal)
 inst = brs.system(wal,bal)
 
 fig = plt.figure(figsize=(6,6))

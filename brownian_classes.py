@@ -363,24 +363,48 @@ class wall_shape:
             t_norm[1] = t_norm[0]*np.sin(ang) +t_norm[1]*np.cos(ang)
 
         #Calculate normal dv
-        dv = np.sum(v_b*t_norm)
-            
+        
+        chk = 0
         #adjust for wall temperature
         if np.isfinite(self.T[self.i_wall]):
-            sig = (self.T[self.i_wall]/ball.m[self.i_ball])**2
-            dv_T = abs(np.random.normal(loc=0.,scale=sig))
-            if dv <= 0:
-                dv = dv-dv_T
-            else:
-                dv = dv+dv_T
-        else: dv = 2*dv
+            dv = np.sum(v_b*t_norm)
+            
+            while chk == 0:
+                if self.T[self.i_wall] > 0:
+                    sig = (self.T[self.i_wall]/ball.m[self.i_ball])**2
+                    u = dv-np.random.normal(loc=0.,scale=sig)
+                else: u = dv.copy
+            
+                w = ((ball.m[self.i_ball]-1)*u)/(ball.m[self.i_ball]+1)
+                dv_tot = w-u
+                
+                ball.v[self.i_ball] = ball.v[self.i_ball] + dv_tot*t_norm
+                v_b = ball.v[self.i_ball]
+                self.P[self.i_wall] += ball.m[self.i_ball]*abs(dv_tot)
+                if dv >= 0:
+                    if np.sum(v_b*t_norm) < 0:
+                        chk = 1
+                else:
+                    if np.sum(v_b*t_norm) > 0:
+                        chk = 1
+                    
+        else: 
+            dv = 2*np.sum(v_b*t_norm)
         
-        ball.v[self.i_ball] = ball.v[self.i_ball] - dv*t_norm
+            ball.v[self.i_ball] = ball.v[self.i_ball] - dv*t_norm
 
-        self.P[self.i_wall] += ball.m[self.i_ball]*abs(dv)
+            self.P[self.i_wall] += ball.m[self.i_ball]*abs(dv)
 
         return dv
-
+        
+        """ball collision code for wall with temperature
+        u = np.sum((self.v[self.i_ball]-self.v[self.j_ball])*rij)
+        
+        w = ((dm-1)*u)/(1+dm)
+        dv = w - u
+        
+        self.v[self.i_ball] = self.v[self.i_ball] + dv*rij
+        """
     
 class balls:
     #generate balls
@@ -433,7 +457,7 @@ class balls:
                               np.random.uniform(low=wall.ylim[0]+self.r[j], 
                                high=wall.ylim[1]-self.r[j])])
                 new_p = np.reshape(new_p,[1,3])
-            new_v = np.random.normal(loc=0., scale=1, size=[1,2])
+            new_v = np.random.normal(loc=0., scale=1.6, size=[1,2])
             
             if wall.isinside(new_p,new_v,self.r[j]) == 1:
                 """if (np.nanmin(np.sum((self.p - np.reshape(new_p,[1,self.nd]))**2) 
