@@ -4,6 +4,8 @@ Created on Wed Jan 25 09:54:15 2017
 History:
     25/01/2017: LM - Set up separate file with vars imported from System
     08/02/2017: LM - Fixed bugs & fully assimilated with new code
+    07/03/2017: WJ - Running with periodic boundary conditions and initial flow
+                        on Bernoulli tube.
 Variable naming convention:
     w_... Wall related variable (should probably make class)
     n_... # of ...
@@ -40,7 +42,7 @@ in_co = np.array([[0,0],
                   [0.4,0.8],
                   [0.2,1],
                   [0,1]])
-
+"""
 #co-ords for opposing sawtooth
 in_co = np.array([[0,0],
                   [0.2,0.2],
@@ -63,9 +65,19 @@ in_co = np.array([[0,0],
                   [0.2,1],
                   [0,0.8]])
 
+#box to test
+in_co = np.array([[0,0],
+                  [0,1],
+                  [1,1],
+                  [1,0]])
+
+"""
 wal = brw.wall_shape(in_co)
-wal.T[:] = 2
-bal = brw.balls(100,0.01,1,2,wal)
+wal.T[:] = 2.5
+#Setting periodic boundaries
+wal.pb_ind[5] = 11
+wal.pb_ind[11] = 5
+bal = brw.balls(50,0.01,1,2,2.5,[2., 0.],wal)
 inst = brs.system(wal,bal)
 
 fig = plt.figure(figsize=(6,6))
@@ -115,7 +127,7 @@ def animate(i):
     
     #step function forward
     #p, energy, pressure, avg_press = inst.step()
-    p, t = inst.step()
+    p, t, T = inst.step()
     energy = 0
     pressure = 0
     avg_press = 0
@@ -135,7 +147,7 @@ def animate(i):
         particles2.set_data(p[sum(bal.n_balls[0:2]):sum(bal.n_balls[0:3]), 0], p[sum(bal.n_balls[0:2]):sum(bal.n_balls[0:3]), 1])
         
     time_text.set_text('Time = %.1f s' % t)
-    energy_text.set_text('Energy = %.2f J' % energy)
+    energy_text.set_text('Temperature = %.2f K' % (T*120.))
     pressure_text.set_text('Pressure = %.2f mPa' % (pressure*1000.))
     avg_press_text.set_text('Average Pressure = %.1f mPa' % (avg_press*1000.))
     

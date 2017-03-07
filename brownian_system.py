@@ -5,6 +5,7 @@ Created on Wed Jan 25 09:50:23 2017
 @author: wj
 History:
     16/02/2017, lm; Small adjustments so can run properly with animation file
+    07/03/2017, WJ: General tidying
 """
 #
 import numpy as np
@@ -40,37 +41,26 @@ class system:
             self.ball.p += self.ball.v*self.min_t
             if t_2col == self.min_t:
                 self.ball.dv_col()
-#<<<<<<< HEAD
                 self.b +=1
                 self.type = 1
-#=======
-#>>>>>>> origin/new_classes
-                #print 'b'
-                
+
             if t_2wall == self.min_t:
                 self.wall.dv_wall(self.ball)
-#<<<<<<< HEAD
                 self.w +=1
                 self.type = 2
-#=======
-#>>>>>>> origin/new_classes
-                #print 'w'
-                
+
             if t_2corn == self.min_t:
                 self.wall.dv_corn(self.ball)
-#<<<<<<< HEAD
                 self.c +=1
                 self.type = 3
-#=======
-#>>>>>>> origin/new_classes
-                #print 'c'
-            
+
         else:
             self.t +=self.t_step
             self.ball.p += self.ball.v*self.t_step
             self.type = 0
+        self.ball.get_T()
             
-        return self.ball.p, self.t
+        return self.ball.p, self.t, self.ball.T
             
     def plt(self):
         fig = plt.figure(figsize=(6,6))
@@ -109,16 +99,16 @@ class system:
                                 ,axis=0)
         
         v_tot = np.sum(self.ball.v,axis=0)
-        print v_tot
+        #print v_tot
         
         self.KE = np.full([n_step+1,self.ball.nd],np.nan)
         self.KE[0] = np.sum(self.ball.m)*np.sum(v_tot**2)/2
-        print self.KE[0]
+        #print self.KE[0]
         
         self.Q = np.full([n_step+1,self.ball.nd],np.nan)
         self.Q[0] = np.sum(np.reshape(self.ball.m,[self.ball.n,1])
                            *(self.ball.v -np.reshape(v_tot,[1,self.ball.nd]))**2)/2
-        print self.Q[0]
+        #print self.Q[0]
         
         self.mv_ang = np.full([n_step+1],np.nan)
         self.mv_ang[0] = np.sum(self.ball.m
@@ -128,14 +118,20 @@ class system:
         self.P = np.copy(self.wall.P)
         self.t_el =  np.full([n_step+1,self.ball.nd],0)
         
+        self.dv = np.full([n_step+1],np.nan)
+        self.dv[0] = 0
+
+        self.dv_i = np.full([n_step+1],self.wall.n+1)
+        
         
         for i in range(n_step):
             self.step()
             self.t_el[i+1] = self.t
-            self.T[i+1] = np.mean(np.std(self.ball.v,axis=0)**2)
-            self.mv_tot[i+1] = np.sum(self.ball.v
-                                       *np.reshape(self.ball.m,[self.ball.n,1])
-                                       ,axis=0)
+            self.ball.get_T()
+            self.T[i+1] = self.ball.T
+
+            self.ball.get_mv_tot()
+            self.mv_tot[i+1] = self.ball.mv_tot
             
             self.mv_ang[i+1] = np.sum(self.ball.m
                                 *(self.ball.v[:,0]*(self.ball.p[:,1]-0.5)
@@ -143,11 +139,18 @@ class system:
             
             self.P = (self.wall.P/self.wall.vlen)/self.t
 
+            """
             v_tot = np.sum(self.ball.v,axis=0)
+            
             self.KE[i+1] = np.sum(self.ball.m)*np.sum(v_tot**2)/2
             self.Q[i+1] = np.sum(np.reshape(self.ball.m,[self.ball.n,1])
                                *(self.ball.v -np.reshape(v_tot,[1,self.ball.nd]))**2)/2
-
+            """
+            
+            if self.type == 2:
+                self.dv[i+1] = abs(self.wall.dv)
+                self.dv_i[i+1] = self.wall.i_wall
+            
             if i % 2000 == 0:
                 fig = plt.figure(figsize=(6,6))
                 ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, 
@@ -192,6 +195,19 @@ class system:
         fig2.show
         fig3.show
         fig4.show
+        
+        fig5 = plt.figure(figsize=(6,6))
+        ax5 = fig5.add_subplot(111)
+        plot_dv = self.dv[self.dv_i < 8]
+        #print plot_dv
+        plot_dv_i = self.dv_i[self.dv_i < 8]
+        plot_dv_i = plot_dv_i.astype(int)
+        #print plot_dv_i
+        plot_dv = plot_dv * self.wall.norm[plot_dv_i,0]
+        #print plot_dv
+        ax5.hist(plot_dv, 50, normed=1, facecolor='green', alpha=0.75)
+        fig5.show
+        
         """
         fig4 = plt.figure(figsize=(6,6))
         ax6 = fig4.add_subplot(111)
