@@ -62,7 +62,7 @@ class system:
             
         return self.ball.p, self.t, self.ball.T
             
-    def plt(self):
+    def plt_sys(self):
         fig = plt.figure(figsize=(6,6))
         ax = fig.add_subplot(111, aspect='equal', autoscale_on=False,
                              xlim=(self.wall.xlim[0]-0.1,self.wall.xlim[1]+0.1),
@@ -71,20 +71,54 @@ class system:
         bal, = ax.plot(self.ball.p[:,0],self.ball.p[:,1],'bo',
                        ms=fig.dpi
                        *fig.get_figwidth()/(ax.get_xlim()[1]-ax.get_xlim()[0])
-                       *2*self.ball.r[0])
+                       *2*self.ball.r[0]
+                       )
         fig.show
     
     def run(self,n_step):
-        mo = np.full([n_step+1,2],np.nan)
-        #ang = np.full(n_step+1,np.nan)
-        
-        mo[0] = np.sum(self.ball.v * np.reshape(self.ball.r,[self.ball.n,1]),axis=0)
-        
+        print 'Running system for ',n_step,' steps'
+        self.t_el =  np.full(n_step+1,0)
+        self.i_b = np.full([n_step+1,2],-1)
+        self.v_av = np.full(n_step+1,0)
+        self.v_av[0] = np.mean(np.sum(self.ball.v**2,axis=1)**0.5)
+        self.E = np.full(n_step+1,0)
+        self.E[0] = np.sum(0.5*self.ball.m*np.sum(self.ball.v**2,axis=1)**0.5)
+        self.mv = np.full([n_step+1,2],0)
+        self.mv[0] = self.ball.get_mv_tot()
+        self.Tmp = np.full(n_step+1,0)
+        self.Tmp[0] = self.ball.get_T()
         for i in range(n_step):
+            if i > 0 and i % (n_step/10) == 0:
+                print i*100./n_step,' % complete'
             self.step()
-            mo[i+1] = np.sum(self.ball.v * np.reshape(self.ball.r,[self.ball.n,1]),axis=0)
-        
-        return mo
+            self.t_el[i+1] = self.t
+            self.v_av[i+1] = np.mean(np.sum(self.ball.v**2,axis=1)**0.5)
+            self.E[i+1] = np.sum(0.5*self.ball.m*np.sum(self.ball.v**2,axis=1))
+            self.mv[i+1] = self.ball.get_mv_tot()
+            self.Tmp[i+1] = self.ball.get_T()
+            #print np.shape(np.sum(self.ball.v**2,axis=1)**0.5)
+            #print self.v_av[i+1]
+            if self.type == 1:
+                self.i_b[i+1,0] = self.ball.i_ball
+                self.i_b[i+1,1] = self.ball.j_ball
+        print 'System time elapsed: ',self.t
+        print 'Particle collisions: ',self.b
+        print 'Wall collisions: ',self.w
+        print 'Corner collisions: ',self.c
+        v_av_all = np.mean(self.v_av)
+        print 'Average particle velocity = ', v_av_all
+        t_col_tot = 0
+        for j in np.arange(self.ball.n):
+            if np.sum(self.i_b == j) >= 2:
+                i = np.where(self.i_b == j)[0]
+                i = np.sort(i)
+                t_i = self.t_el[i]
+                t_col_tot += np.mean(t_i[1:]-t_i[:-1])
+        self.t_col = t_col_tot/self.ball.n
+        print 'Average collision time = ',self.t_col
+        self.d_col = self.t_col*v_av_all
+        print 'Mean free path = ', self.d_col
+        return self.t_el,self.t_col,self.d_col,self.E,self.mv,self.Tmp
         
     def run_plt(self,n_step):
         print 'Running system for ',n_step,' steps'
@@ -116,12 +150,14 @@ class system:
                                   -self.ball.v[:,1]*(self.ball.p[:,0]-0.5)))
         
         self.P = np.copy(self.wall.P)
-        self.t_el =  np.full([n_step+1,self.ball.nd],0)
+        self.t_el =  np.full(n_step+1,0)
         
         self.dv = np.full([n_step+1],np.nan)
         self.dv[0] = 0
 
         self.dv_i = np.full([n_step+1],self.wall.n+1)
+        
+        self.i_b = np.full([n_step+1,2],-1)
         
         
         for i in range(n_step):
@@ -138,6 +174,7 @@ class system:
                                   -self.ball.v[:,1]*(self.ball.p[:,0]-0.5)))
             
             self.P = (self.wall.P/self.wall.vlen)/self.t
+            
 
             """
             v_tot = np.sum(self.ball.v,axis=0)
@@ -150,6 +187,10 @@ class system:
             if self.type == 2:
                 self.dv[i+1] = abs(self.wall.dv)
                 self.dv_i[i+1] = self.wall.i_wall
+
+            if self.type == 1:
+                self.i_b[i+1,0] = self.ball.i_ball
+                self.i_b[i+1,1] = self.ball.j_ball
             
             if i % 2000 == 0:
                 fig = plt.figure(figsize=(6,6))
@@ -158,9 +199,11 @@ class system:
                                      ylim=(self.wall.ylim[0]-0.1,self.wall.ylim[1]+0.1))
                 wal, = ax.plot(self.wall.co_plt[:,0],self.wall.co_plt[:,1])
                 bal, = ax.plot(self.ball.p[:,0],self.ball.p[:,1],'bo',
-                           ms=fig.dpi
-                              *fig.get_figwidth()/(ax.get_xlim()[1]-ax.get_xlim()[0])
-                              *2*self.ball.r[0])
+                               ms=fig.dpi
+                                   *fig.get_figwidth()
+                                   /(ax.get_xlim()[1]-ax.get_xlim()[0])
+                                   *2*self.ball.r[0]
+                               )
                 fig.show
                 
         print 'Particle collisions: ',self.b
@@ -195,7 +238,7 @@ class system:
         fig2.show
         fig3.show
         fig4.show
-        
+        """
         fig5 = plt.figure(figsize=(6,6))
         ax5 = fig5.add_subplot(111)
         plot_dv = self.dv[self.dv_i < 8]
@@ -207,7 +250,19 @@ class system:
         #print plot_dv
         ax5.hist(plot_dv, 50, normed=1, facecolor='green', alpha=0.75)
         fig5.show
-        
+        """
+        t_col_tot = 0
+        n_tot = 0
+        for j in np.arange(self.ball.n):
+            n_col = np.sum(self.i_b == j)
+            if n_col >= 2:
+                i = np.where(self.i_b == j)[0]
+                i = np.sort(i)
+                t_i = self.t_el[i]
+                t_col_tot += np.mean(t_i[-1]-t_i[0])
+                n_tot += (n_col-1)
+        self.t_col = t_col_tot/n_tot
+        print self.t_col
         """
         fig4 = plt.figure(figsize=(6,6))
         ax6 = fig4.add_subplot(111)

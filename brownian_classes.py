@@ -64,6 +64,7 @@ class wall_shape:
                +vec[:,1]*co[:,0]*vlen)
         #sum (discrete integral) over all walls and multiply by 0.5 giving area
         A = 0.5*np.sum(tmp)
+        A = np.abs(A)
         return A
     
     """
@@ -106,8 +107,12 @@ class wall_shape:
         self.fb = np.full(self.n, 0.)
         #wall temperature
         self.T = np.full(self.n, np.nan)
-        #wall pressure?
-        self.P = np.full(self.n, 0.)
+        #heat bath boundary flag
+        self.hb_flag = np.full(self.n, 0)
+        #heat bath flow speed
+        self.hb_v = np.full(self.n, 0.)
+        #expected rate /t
+        self.pb_t = np.full(self.n, 0.)
         #x and y limits - smallest and largest co-ords in each direction
         self.xlim = np.array(
                              [
@@ -346,7 +351,7 @@ class wall_shape:
             p_par = np.sum((p_b-self.co[self.i_wall]) *self.vec[self.i_wall])
             p_par = p_par/self.vlen[self.i_wall]
             new_par = 1-p_par
-            new_p = self.co[i_pb] + self.vec[i_pb]*new_par
+            new_p = self.co[i_pb] + self.vec[i_pb]*new_par*self.vlen[i_pb]
             p_rel = np.sum((p_b-self.co[self.i_wall]) *self.norm[self.i_wall])
             new_p += p_rel*self.norm[i_pb]
             ball.p[self.i_ball] = new_p
@@ -379,7 +384,7 @@ class wall_shape:
             dv = 2*dv
         self.dv = dv
         ball.v[self.i_ball] = ball.v[self.i_ball] - dv*t_norm
-        self.P[self.i_wall] += ball.m[self.i_ball]*abs(dv)
+        #self.P[self.i_wall] += ball.m[self.i_ball]*abs(dv)
         return dv
         
 class balls:
@@ -521,7 +526,8 @@ class balls:
         self.v_tot = np.sum(self.v,axis=0)
         
     def get_mv_tot(self):
-        self.mv_tot = np.sum(self.v*np.reshape(self.m**0.5,[self.n,1]),axis=0)
+        self.mv_tot = np.median(self.v*np.reshape(self.m,[self.n,1]),axis=0)
+        return self.mv_tot
 
     def get_T(self):
         self.T = np.mean(
@@ -530,3 +536,4 @@ class balls:
                                 axis=0
                                 )**2
                          )
+        return self.T

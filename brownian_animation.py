@@ -30,18 +30,18 @@ import brownian_classes as brw
 import brownian_system as brs
 
 #set up Bernoulli tube system
-in_co = np.array([[0,0],
-                  [0.2,0],
-                  [0.4,0.2],
-                  [0.6,0.2],
-                  [0.8,0],
+in_co = np.array([[-0.5,0],
+                  [0,0],
+                  [0.4,0.3],
+                  [0.6,0.3],
                   [1,0],
+                  [1.5,0],
+                  [1.5,1],
                   [1,1],
-                  [0.8,1],
-                  [0.6,0.8],
-                  [0.4,0.8],
-                  [0.2,1],
-                  [0,1]])
+                  [0.6,0.7],
+                  [0.4,0.7],
+                  [0.,1],
+                  [-0.5,1]])*10
 """
 #co-ords for opposing sawtooth
 in_co = np.array([[0,0],
@@ -67,17 +67,44 @@ in_co = np.array([[0,0],
 
 #box to test
 in_co = np.array([[0,0],
-                  [0,1],
-                  [1,1],
-                  [1,0]])
-
+                  [0,10],
+                  [10,10],
+                  [10,0]])
+"""
 """
 wal = brw.wall_shape(in_co)
 wal.T[:] = 2.5
 #Setting periodic boundaries
 wal.pb_ind[5] = 11
-wal.pb_ind[11] = 5
-bal = brw.balls(50,0.01,1,2,2.5,[2., 0.],wal)
+#wal.pb_ind[11] = 5
+bal = brw.balls(176,0.1,1,2,2.5,[2.0,0.],wal)
+inst = brs.system(wal,bal)
+"""
+
+
+in_co = np.array([[0,1],
+                  [0,0],
+                  [2,1],
+                  [2,0],
+                  [4,1],
+                  [4,0],
+                  [6,1],
+                  [6,0],
+                  [8,1],
+                  [8,0],
+                  [10,1],
+                  [10,2],
+                  [0,2]])
+
+wal = brw.wall_shape(in_co)
+wal.T[:] = 2.5
+wal.T[:11] = 5
+wal.T[-1] = 5
+
+wal.pb_ind[10] = 12
+wal.pb_ind[12] = 10
+
+bal = brw.balls(10,0.1,1,2,2.5,0.,wal)
 inst = brs.system(wal,bal)
 
 fig = plt.figure(figsize=(6,6))
@@ -92,8 +119,8 @@ if len(bal.r2) > 2:
     particles2, = ax.plot([], [], 'bo', ms=15.)
 time_text = ax.text(0.025, 0.93, '', transform=ax.transAxes)
 energy_text = ax.text(0.025, 0.88, '', transform=ax.transAxes)
-pressure_text = ax.text(0.025, 0.83, '', transform=ax.transAxes)
-avg_press_text = ax.text(0.025, 0.78, '', transform=ax.transAxes)
+#pressure_text = ax.text(0.025, 0.83, '', transform=ax.transAxes)
+#avg_press_text = ax.text(0.025, 0.78, '', transform=ax.transAxes)
 
 #Make container boundary
 ax.plot(wal.co_plt[:,0],wal.co_plt[:,1])
@@ -146,7 +173,7 @@ def animate(i):
         particles2.set_markersize(ms2)
         particles2.set_data(p[sum(bal.n_balls[0:2]):sum(bal.n_balls[0:3]), 0], p[sum(bal.n_balls[0:2]):sum(bal.n_balls[0:3]), 1])
         
-    time_text.set_text('Time = %.1f s' % t)
+    time_text.set_text('Time = %.1f ps' % t)
     energy_text.set_text('Temperature = %.2f K' % (T*120.))
     pressure_text.set_text('Pressure = %.2f mPa' % (pressure*1000.))
     avg_press_text.set_text('Average Pressure = %.1f mPa' % (avg_press*1000.))

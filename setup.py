@@ -49,16 +49,38 @@ in_co = np.array([[0,0],
 
 #box to test
 in_co = np.array([[0,0],
-                  [0,1],
-                  [1,1],
-                  [1,0]])
+                  [0,10],
+                  [10,10],
+                  [10,0]])
 
 
 wal = brw.wall_shape(in_co)
-wal.T[:] = 2.5
-wal.pb_ind[1] = 3
-wal.pb_ind[3] = 1
-bal = brw.balls(50,0.01,1,2,2.5,0.,wal)
+#wal.T[:] = 2.5
+wal.pb_ind = np.array([2,3,0,1])
+"""
+bal = brw.balls(50,0.1,1,2,2.5,0.,wal)
 sys = brs.system(wal,bal)
+sys.run_plt(100000)
+"""
 
-sys.run_plt(10000)
+t_col = np.full([20],np.nan)
+d_col = np.full([20],np.nan)
+for i in np.arange(20):
+    #for j in np.arange(10):
+    bal = brw.balls((i+1)*10,0.1,1,2,2.5,0.,wal)
+    sys = brs.system(wal,bal)
+    out = sys.run(1000)
+    t_col[i] = out[0]
+    d_col[i] = out[1]
+    
+
+print t_col
+print d_col
+
+fig1 = plt.figure(figsize=(6,6))
+ax1 = fig1.add_subplot(111)
+ax1.plot(np.arange(20)+1,t_col)
+
+fig2 = plt.figure(figsize=(6,6))
+ax2 = fig1.add_subplot(111)
+ax2.plot(np.arange(20)+1,d_col)
