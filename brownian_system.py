@@ -82,7 +82,7 @@ class system:
         self.v_av = np.full(n_step+1,0)
         self.v_av[0] = np.mean(np.sum(self.ball.v**2,axis=1)**0.5)
         self.E = np.full(n_step+1,0)
-        self.E[0] = np.sum(0.5*self.ball.m*np.sum(self.ball.v**2,axis=1)**0.5)
+        self.E[0] = np.sum(0.5*self.ball.m*np.sum(self.ball.v**2,axis=1))
         self.mv = np.full([n_step+1,2],0)
         self.mv[0] = self.ball.get_mv_tot()
         self.Tmp = np.full(n_step+1,0)
