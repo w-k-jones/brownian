@@ -14,6 +14,7 @@ History:
 """
 
 import numpy as np
+import brownian_tools as brt
 
 """
 Wall_shape class, contains wall property variables and the functions for 
@@ -369,13 +370,7 @@ class wall_shape:
         dv = np.sum(v_b*t_norm)
         #adjust for wall temperature
         if np.isfinite(self.T[self.i_wall]):
-            #WHY 2 TIMES?
-            dv_T = np.random.normal(
-                                    loc=0.,
-                                    scale=(2*self.T[self.i_wall]
-                                           /ball.m[self.i_ball])**0.5
-                                    )
-            dv_T = np.abs(dv_T)
+            dv_T = brt.rand_mb2d(self.T[self.i_wall], ball.m[self.i_ball])
             if dv >= 0:
                 dv += dv_T
             else:

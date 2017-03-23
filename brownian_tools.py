@@ -24,6 +24,10 @@ NaN array creation routine just to save typing it out
 def nanarr(size):
     arr = np.full(size, np.nan)
     return arr
+    
+def rand_mb2d(T,m):
+    p_in = np.random.uniform()
+    return ((-2*T/m) * np.log(1 - (m/T)**2 * p_in))**0.5
 
 
 """
