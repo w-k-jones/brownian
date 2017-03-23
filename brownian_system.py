@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Jan 25 09:50:23 2017
 
 @author: wj
 History:
-    16/02/2017, lm; Small adjustments so can run properly with animation file
+    16/02/2017, LM: Small adjustments so can run properly with animation file
     07/03/2017, WJ: General tidying
 """
 #
@@ -23,6 +22,9 @@ class system:
         self.t = 0
         self.t_step = 0.1
         self.t_max = 100
+        
+        #Incident and reflected velocity tracker
+        self.vel = np.full(2, np.nan).reshape([2,-1])
         
         self.b = 0
         self.c = 0
@@ -48,11 +50,13 @@ class system:
                 self.wall.dv_wall(self.ball)
                 self.w +=1
                 self.type = 2
+                self.vel = np.concatenate((self.vel,self.wall.velw), axis=1)
 
             if t_2corn == self.min_t:
                 self.wall.dv_corn(self.ball)
                 self.c +=1
                 self.type = 3
+                self.vel = np.concatenate((self.vel,self.wall.velc), axis=1)
 
         else:
             self.t +=self.t_step
@@ -82,7 +86,7 @@ class system:
         self.v_av = np.full(n_step+1,0)
         self.v_av[0] = np.mean(np.sum(self.ball.v**2,axis=1)**0.5)
         self.E = np.full(n_step+1,0)
-        self.E[0] = np.sum(0.5*self.ball.m*np.sum(self.ball.v**2,axis=1)**0.5)
+        self.E[0] = np.sum(0.5*self.ball.m*np.sum(self.ball.v**2,axis=1))
         self.mv = np.full([n_step+1,2],0)
         self.mv[0] = self.ball.get_mv_tot()
         self.Tmp = np.full(n_step+1,0)
@@ -101,6 +105,16 @@ class system:
             if self.type == 1:
                 self.i_b[i+1,0] = self.ball.i_ball
                 self.i_b[i+1,1] = self.ball.j_ball
+        #Determine number of balls in velocity range
+        #self.vel = self.vel[1:]
+        self.vel_distrib = np.full(2, np.nan).reshape([2,-1])
+        bin = np.max(self.vel)/30.
+        for i in range(30):
+            #number of balls in i^th bin:
+            num_inc = np.where(np.logical_and(self.vel[0]>=i*bin, self.vel[0]<=(i+1)*bin))
+            num_ref = np.where(np.logical_and(self.vel[1]>=i*bin, self.vel[1]<=(i+1)*bin))
+            self.vel_distrib = np.concatenate((self.vel_distrib,np.array([len(num_inc[0]),len(num_ref[0])]).reshape([2,-1])))
+        #self.vel_distrib = self.vel_distrib[1:]
         print 'System time elapsed: ',self.t
         print 'Particle collisions: ',self.b
         print 'Wall collisions: ',self.w
@@ -118,6 +132,7 @@ class system:
         print 'Average collision time = ',self.t_col
         self.d_col = self.t_col*v_av_all
         print 'Mean free path = ', self.d_col
+        print 'Wall collision velocities = ', self.vel_distrib
         return self.t_el,self.t_col,self.d_col,self.E,self.mv,self.Tmp
         
     def run_plt(self,n_step):

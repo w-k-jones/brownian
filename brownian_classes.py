@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Dec 07 10:26:32 2016
 @author: wj
@@ -210,6 +209,8 @@ class wall_shape:
         if np.isfinite(self.T[self.i_corn]):
             sig = (self.T[self.i_corn]/ball.m[self.i_ball_c])**0.5
             dv_T = np.abs(np.random.normal(loc=0.,scale=sig))
+            #Record old and new perpendicular velocities
+            self.velc = np.array([np.abs(dv),dv_T]).reshape([2,-1])
             #Set change in same direction as dv
             if dv <=0:
                 dv -=dv_T
@@ -371,6 +372,7 @@ class wall_shape:
         #adjust for wall temperature
         if np.isfinite(self.T[self.i_wall]):
             dv_T = brt.rand_mb2d(self.T[self.i_wall], ball.m[self.i_ball])
+            self.velw = np.array([np.abs(dv),dv_T]).reshape([2,-1])
             if dv >= 0:
                 dv += dv_T
             else:
@@ -521,7 +523,7 @@ class balls:
         self.v_tot = np.sum(self.v,axis=0)
         
     def get_mv_tot(self):
-        self.mv_tot = np.median(self.v*np.reshape(self.m,[self.n,1]),axis=0)
+        self.mv_tot = np.sum(self.v*np.reshape(self.m,[self.n,1]),axis=0)
         return self.mv_tot
 
     def get_T(self):
