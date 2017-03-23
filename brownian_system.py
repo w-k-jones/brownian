@@ -81,68 +81,122 @@ class system:
     
     def run(self,n_step):
         print 'Running system for ',n_step,' steps'
+        #Initialise arrays for recording system properties
+        # elpased time
         self.t_el =  np.full(n_step+1,0)
+        # ball index
         self.i_b = np.full([n_step+1,2],-1)
-        self.v_av = np.full(n_step+1,0)
-        self.v_av[0] = np.mean(np.sum(self.ball.v**2,axis=1)**0.5)
-        self.E = np.full(n_step+1,0)
-        self.E[0] = np.sum(0.5*self.ball.m*np.sum(self.ball.v**2,axis=1))
+        #wall index
+        self.i_w = np.full([n_step+1,1],-1)
+        #collision type
+        self.typ = np.full(n_step+1,0)
+        # collision velocities
+        self.dv = np.full([n_step+1,2],0)
+        # mean velocity
+        self.v_av = np.full([n_step+1,2],0)
+        self.v_av[0] = self.ball.get_v_av()
+        # total momentum
         self.mv = np.full([n_step+1,2],0)
         self.mv[0] = self.ball.get_mv_tot()
-        self.Tmp = np.full(n_step+1,0)
-        self.Tmp[0] = self.ball.get_T()
+        # system temperature
+        self.T = np.full(n_step+1,0)
+        self.T[0] = self.ball.get_T()
+        # total energy
+        self.E = np.full(n_step+1,0)
+        self.E[0] = self.ball.get_E_tot()
+        # kinetic energy
+        self.KE = np.full(n_step+1,0)
+        self.KE[0] = self.ball.get_E_KE()
+        # heat
+        self.Q = np.full(n_step+1,0)
+        self.Q[0] = self.ball.get_E_Q()
+        # angular momentum
+        self.mv_ang = np.full(n_step+1,0)
+        self.mv_ang[0] = self.ball.get_mv_ang()
+        
         for i in range(n_step):
+            # print progress
             if i > 0 and i % (n_step/10) == 0:
                 print i*100./n_step,' % complete'
+            # step forwards
             self.step()
+            # record system properties
             self.t_el[i+1] = self.t
-            self.v_av[i+1] = np.mean(np.sum(self.ball.v**2,axis=1)**0.5)
-            self.E[i+1] = np.sum(0.5*self.ball.m*np.sum(self.ball.v**2,axis=1))
-            self.mv[i+1] = self.ball.get_mv_tot()
-            self.Tmp[i+1] = self.ball.get_T()
-            #print np.shape(np.sum(self.ball.v**2,axis=1)**0.5)
-            #print self.v_av[i+1]
+            self.typ[i+1] = self.type
             if self.type == 1:
                 self.i_b[i+1,0] = self.ball.i_ball
                 self.i_b[i+1,1] = self.ball.j_ball
-        #Determine number of balls in velocity range
-        #self.vel = self.vel[1:]
-        """
-        Old histogram method        
-        self.vel_distrib = np.full(2, np.nan).reshape([2,-1])
-        bin = np.max(self.vel)/30.
-        for i in range(30):
-            #number of balls in i^th bin:
-            num_inc = np.where(np.logical_and(self.vel[0]>=i*bin, self.vel[0]<=(i+1)*bin))
-            num_ref = np.where(np.logical_and(self.vel[1]>=i*bin, self.vel[1]<=(i+1)*bin))
-            self.vel_distrib = np.concatenate((self.vel_distrib,np.array([len(num_inc[0]),len(num_ref[0])]).reshape([2,-1])))
-        #self.vel_distrib = self.vel_distrib[1:]
-        """
-        self.vel = np.delete(self.vel,0,1)
-        plt.hist(self.vel[0],bins=30)
-        plt.show()
-        plt.hist(self.vel[1],bins=30)
-        plt.show()
+                self.dv[i+1] = [self.ball.dv1, self.ball.dv2]
+            elif self.type == 2:
+                self.i_w[i+1] = self.wall.i_wall
+                self.i_b[i+1,0] = self.wall.i_ball
+                self.dv[i+1] = [self.wall.dv_in, self.wall.dv_out]
+            elif self.type == 3:
+                self.i_w[i+1] = self.wall.i_corn
+                self.i_b[i+1,0] = self.wall.i_ball_c
+                self.dv[i+1] = [self.wall.dv_in, self.wall.dv_out]
+            #update particle properties
+            self.v_av[i+1] = self.ball.get_v_av()
+            self.mv[i+1] = self.ball.get_mv_tot()
+            self.T[i+1] = self.ball.get_T()
+            self.E[i+1] = self.ball.get_E_tot()
+            self.KE[i+1] = self.ball.get_E_KE()
+            self.Q[i+1] = self.ball.get_E_Q()
+            self.mv_ang[i+1] = self.ball.get_mv_ang()
+            #print np.shape(np.sum(self.ball.v**2,axis=1)**0.5)
+            #print self.v_av[i+1]
+            
+        # collision histogram code
+        #self.vel = np.delete(self.vel,0,1)
+        #plt.hist(self.vel[0],bins=30)
+        #plt.show()
+        #plt.hist(self.vel[1],bins=30)
+        #plt.show()
         print 'System time elapsed: ',self.t
         print 'Particle collisions: ',self.b
         print 'Wall collisions: ',self.w
         print 'Corner collisions: ',self.c
         v_av_all = np.mean(self.v_av)
         print 'Average particle velocity = ', v_av_all
+        
+        #Calculate mean free path and collision time
         t_col_tot = 0
+        t_col_n = 0
+        i_b_col = self.i_b[self.typ == 1]
+        t_col = self.t_el[self.typ == 1]
         for j in np.arange(self.ball.n):
-            if np.sum(self.i_b == j) >= 2:
-                i = np.where(self.i_b == j)[0]
+            n_t = np.sum(i_b_col == j)
+            if n_t >= 2:
+                i = np.where(i_b_col == j)[0]
                 i = np.sort(i)
-                t_i = self.t_el[i]
-                t_col_tot += np.mean(t_i[1:]-t_i[:-1])
-        self.t_col = t_col_tot/self.ball.n
+                t_i = t_col[i]
+                t_col_tot += t_i[-1]-t_i[0]
+                t_col_n += (n_t-1)
+        self.t_col = t_col_tot/t_col_n
+        self.t_col_err = self.t_col/t_col_n**0.5
         print 'Average collision time = ',self.t_col
+        print 'Error = ',self.t_col_err
         self.d_col = self.t_col*v_av_all
         print 'Mean free path = ', self.d_col
+        print 'Error = ',self.d_col/t_col_n**0.5
         #print 'Wall collision velocities = ', self.vel_distrib
-        return self.t_el,self.t_col,self.d_col,self.E,self.mv,self.Tmp
+        return self.t_el, \
+               self.t_col, \
+               self.d_col, \
+               self.v_av, \
+               self.mv, \
+               self.T, \
+               self.E, \
+               self.KE, \
+               self.Q, \
+               self.mv_ang
         
+        
+        
+        
+    """
+     Old run and plot code, use .run and .plt_... functions instead 
+    """ 
     def run_plt(self,n_step):
         print 'Running system for ',n_step,' steps'
         

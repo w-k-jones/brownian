@@ -204,26 +204,25 @@ class wall_shape:
             t_norm[1] = t_norm[0]*np.sin(ang) +t_norm[1]*np.cos(ang)
         """
         #Dot product of ball velocity with normal
-        dv = np.sum(ball.v[self.i_ball_c] * t_norm)
+        self.dv_in = np.sum(ball.v[self.i_ball_c] * t_norm)
         #adjust for wall temperature
         if np.isfinite(self.T[self.i_corn]):
-            sig = (self.T[self.i_corn]/ball.m[self.i_ball_c])**0.5
-            dv_T = np.abs(np.random.normal(loc=0.,scale=sig))
+            self.dv_out = brt.rand_mb2d(self.T[self.i_corn], ball.m[self.i_ball_c])
             #Record old and new perpendicular velocities
-            self.velc = np.array([np.abs(dv),dv_T]).reshape([2,-1])
+            self.velc = np.array([np.abs(self.dv_in),self.dv_out]).reshape([2,-1])
             #Set change in same direction as dv
-            if dv <=0:
-                dv -=dv_T
+            if self.dv_in <=0:
+                self.dv = self.dv_in - self.dv_out
             else:
-                dv +=dv_T
+                self.dv = self.dv_in + self.dv_out
         #If no T then elastic collision
-        else: dv = 2*dv
+        else: 
+            self.velc = np.array([np.abs(self.dv_in),np.abs(self.dv_in)]).reshape([2,-1])
+            self.dv = 2*self.dv_in
         #Change ball velcity
-        ball.v[self.i_ball_c] -= dv*t_norm
-        #Store last dv change
-        self.dv = dv
+        ball.v[self.i_ball_c] -= self.dv*t_norm
         #Return dv
-        return dv
+        return self.dv
         
     
     """Calculate time to next collision between ball and wall"""
@@ -358,6 +357,9 @@ class wall_shape:
             new_p += p_rel*self.norm[i_pb]
             ball.p[self.i_ball] = new_p
             self.dv = 0
+            self.dv_in = 0
+            self.dv_out = 0
+            self.velw = np.array([0,0]).reshape([2,-1])
             return 0
         """
         #adjust for roughness value
@@ -368,21 +370,22 @@ class wall_shape:
             t_norm[0] = t_norm[0]*np.cos(ang) -t_norm[1]*np.sin(ang)
             t_norm[1] = t_norm[0]*np.sin(ang) +t_norm[1]*np.cos(ang)
         """
-        dv = np.sum(v_b*t_norm)
+        self.dv_in = np.sum(v_b*t_norm)
         #adjust for wall temperature
         if np.isfinite(self.T[self.i_wall]):
-            dv_T = brt.rand_mb2d(self.T[self.i_wall], ball.m[self.i_ball])
-            self.velw = np.array([np.abs(dv),dv_T]).reshape([2,-1])
-            if dv >= 0:
-                dv += dv_T
+            self.dv_out = brt.rand_mb2d(self.T[self.i_wall], ball.m[self.i_ball])
+            self.velw = np.array([np.abs(self.dv_in),self.dv_out]).reshape([2,-1])
+            if self.dv_in >= 0:
+                self.dv = self.dv_in + self.dv_out
             else:
-                dv -= dv_T
+                self.dv = self.dv_in - self.dv_out
         else: 
-            dv = 2*dv
-        self.dv = dv
-        ball.v[self.i_ball] = ball.v[self.i_ball] - dv*t_norm
+            self.velw = np.array([np.abs(self.dv_in),np.abs(self.dv_in)]).reshape([2,-1])
+            self.dv_out = self.dv_in
+            self.dv = 2*self.dv_in
+        ball.v[self.i_ball] = ball.v[self.i_ball] - self.dv*t_norm
         #self.P[self.i_wall] += ball.m[self.i_ball]*abs(dv)
-        return dv
+        return self.dv
         
 class balls:
     #generate balls
@@ -516,15 +519,35 @@ class balls:
         w = ((dm-1)*u)/(1+dm)
         dv = w - u
         
+        self.dv1 = np.abs(np.sum(self.v[self.i_ball]*dij))
+        self.dv2 = np.abs(np.sum(self.v[self.j_ball]*dij))
+        
         self.v[self.i_ball] = self.v[self.i_ball] + dv*rij
         self.v[self.j_ball] = self.v[self.j_ball] - dm*dv*rij
+        
+    """
+    Particle property functions
+    """
 
     def get_v_tot(self):
-        self.v_tot = np.sum(self.v,axis=0)
+        self.v_tot = np.mean(self.v,axis=0)
+        return self.v_tot
+        
+    def get_v_av(self):
+        self.v_av = np.mean(np.sum(self.v**2,axis=1)**0.5)
+        return self.v_av
         
     def get_mv_tot(self):
         self.mv_tot = np.sum(self.v*np.reshape(self.m,[self.n,1]),axis=0)
         return self.mv_tot
+        
+    def get_mv_ang(self):
+        self.mv_ang = np.sum(
+                             self.m
+                             *(self.v[:, 0] *self.p[:, 1]
+                                  -self.v[:, 1] *self.p[:, 0])
+                             )
+        return self.mv_ang
 
     def get_T(self):
         self.T = np.mean(
@@ -534,3 +557,17 @@ class balls:
                                 )**2
                          )
         return self.T
+        
+    def get_E_tot(self):
+        self.E_tot = np.sum(self.m*np.sum(self.v**2, axis=1))
+        return self.E_tot
+        
+    def get_E_KE(self):
+        self.E_KE = np.sum(self.get_v_tot()**2) * np.sum(self.m) * 0.5
+        return self.E_KE
+        
+    def get_E_Q(self):
+        self.E_Q = self.get_E_tot() - self.get_E_KE()
+        return self.E_Q
+        
+    

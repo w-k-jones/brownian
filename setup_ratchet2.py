@@ -70,7 +70,7 @@ wal = brw.wall_shape(in_co)
 #wal.pb_ind = np.array([2,3,0,1])
 #bal = brw.balls(107,0.1,1,2,1.,0.,wal)
 
-n_run = 100
+n_run = 1
 
 fig_1 = plt.figure(figsize=(6,6))
 ax_1 = fig_1.add_subplot(111)
@@ -80,31 +80,32 @@ fig_3 = plt.figure(figsize=(6,6))
 ax_3 = fig_3.add_subplot(111)
 
 for i in np.arange(n_run):
-    wal = brw.wall_shape(in_co)
-    wal.T[:] = 1.
-    wal.T[0:20] = 100
+    wal = brw.wall_shape(in_co2)
+    #wal.T[:] = 1.
+    #wal.T[0:20] = 100
 
-    wal.pb_ind[21] = 23
-    wal.pb_ind[23] = 21
-    bal = brw.balls(20,0.1,1,2,1.,0.,wal)
+    #wal.pb_ind[21] = 23
+    #wal.pb_ind[23] = 21
+    wal.pb_ind = np.array([2,3,0,1])
+    bal = brw.balls(96,0.1,1,2,2.5,0.,wal)
     sys = brs.system(wal,bal)
     sys.plt_sys
     out = sys.run(1000)
     mv = out[4]
-    E = out[3]
+    E = out[6]
     T = out[5]
     t_el = out[0]
-    ax_1.plot(t_el,mv[:,0],'b-',alpha=0.1)
-    ax_2.plot(t_el,E,'g-',alpha=0.1)
-    ax_3.plot(t_el,T*120,'r-',alpha=0.1)
+    ax_1.plot(t_el,mv[:,0],'b-',alpha=1/n_run**0.75)
+    ax_2.plot(t_el,E,'g-',alpha=1/n_run**0.75)
+    ax_3.plot(t_el,T*120,'r-',alpha=1/n_run**0.75)
     if i == 0:
         mv_all = out[4]
-        E_all = out[3]
+        E_all = out[6]
         T_all = out[5]
         t_el_all = out[0]
     else:
         mv_all += out[4]
-        E_all += out[3]
+        E_all += out[6]
         T_all += out[5]
         t_el_all += out[0]
 
