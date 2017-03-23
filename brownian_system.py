@@ -107,6 +107,8 @@ class system:
                 self.i_b[i+1,1] = self.ball.j_ball
         #Determine number of balls in velocity range
         #self.vel = self.vel[1:]
+        """
+        Old histogram method        
         self.vel_distrib = np.full(2, np.nan).reshape([2,-1])
         bin = np.max(self.vel)/30.
         for i in range(30):
@@ -115,6 +117,12 @@ class system:
             num_ref = np.where(np.logical_and(self.vel[1]>=i*bin, self.vel[1]<=(i+1)*bin))
             self.vel_distrib = np.concatenate((self.vel_distrib,np.array([len(num_inc[0]),len(num_ref[0])]).reshape([2,-1])))
         #self.vel_distrib = self.vel_distrib[1:]
+        """
+        self.vel = np.delete(self.vel,0,1)
+        plt.hist(self.vel[0],bins=30)
+        plt.show()
+        plt.hist(self.vel[1],bins=30)
+        plt.show()
         print 'System time elapsed: ',self.t
         print 'Particle collisions: ',self.b
         print 'Wall collisions: ',self.w
@@ -132,7 +140,7 @@ class system:
         print 'Average collision time = ',self.t_col
         self.d_col = self.t_col*v_av_all
         print 'Mean free path = ', self.d_col
-        print 'Wall collision velocities = ', self.vel_distrib
+        #print 'Wall collision velocities = ', self.vel_distrib
         return self.t_el,self.t_col,self.d_col,self.E,self.mv,self.Tmp
         
     def run_plt(self,n_step):
