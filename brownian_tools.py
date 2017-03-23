@@ -27,7 +27,7 @@ def nanarr(size):
     
 def rand_mb2d(T,m):
     p_in = np.random.uniform()
-    return ((-2*T/m) * np.log(1 - (m/T)**2 * p_in))**0.5
+    return ((-2*T/m) * np.log(1 - p_in))**0.5
 
 
 """
