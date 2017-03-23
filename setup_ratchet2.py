@@ -47,7 +47,7 @@ in_co = np.array([[  0.       ,   0.       ],
                   [ 17.8660254,   0.5      ],
                   [ 18.       ,   0.       ],
                   [ 19.8660254,   0.5      ],
-                  [20,0],
+                  [ 20.       ,   0.       ],
                   [21,0],
                   [21,2],
                   [-1,2],
@@ -58,19 +58,20 @@ wal = brw.wall_shape(in_co)
 wal.T[:] = 1
 #wal.T[:20] = 100
 
-wal.pb_ind[21] = 23
-wal.pb_ind[23] = 21
-
+#wal.pb_ind[21] = 23
+#wal.pb_ind[23] = 21
+"""
 in_co2 = np.array([[0,0],
                   [10,0],
                   [10,10],
                   [0,10]])
-wal = brw.wall_shape(in_co)
-
+wal = brw.wall_shape(in_co2)
+"""
 #wal.pb_ind = np.array([2,3,0,1])
 #bal = brw.balls(107,0.1,1,2,1.,0.,wal)
 
-n_run = 1
+n_run = 100
+l_run = 1000
 
 fig_1 = plt.figure(figsize=(6,6))
 ax_1 = fig_1.add_subplot(111)
@@ -79,40 +80,59 @@ ax_2 = fig_2.add_subplot(111)
 fig_3 = plt.figure(figsize=(6,6))
 ax_3 = fig_3.add_subplot(111)
 
+mv_arr = np.full([n_run,l_run+1],0.)
+
 for i in np.arange(n_run):
-    wal = brw.wall_shape(in_co2)
+    wal = brw.wall_shape(in_co)
     #wal.T[:] = 1.
     #wal.T[0:20] = 100
 
-    #wal.pb_ind[21] = 23
-    #wal.pb_ind[23] = 21
-    wal.pb_ind = np.array([2,3,0,1])
-    bal = brw.balls(96,0.1,1,2,2.5,0.,wal)
+    wal.pb_ind[21] = 23
+    wal.pb_ind[23] = 21
+    #wal.pb_ind = np.array([2,3,0,1])
+    bal = brw.balls(20,0.1,1,2,1.,[0.84,0.],wal)
     sys = brs.system(wal,bal)
-    sys.plt_sys
-    out = sys.run(1000)
-    mv = out[4]
-    E = out[6]
-    T = out[5]
+    """
+    fig = plt.figure(figsize=(6,6))
+    ax = fig.add_subplot(111, aspect='equal', autoscale_on=False,
+                     xlim=(sys.wall.xlim[0]-0.1,sys.wall.xlim[1]+0.1),
+                     ylim=(sys.wall.ylim[0]-0.1,sys.wall.ylim[1]+0.1))
+    wal, = ax.plot(sys.wall.co_plt[:,0],sys.wall.co_plt[:,1])
+    bal, = ax.plot(sys.ball.p[:,0],sys.ball.p[:,1],'bo',
+               ms=fig.dpi
+               *fig.get_figwidth()/(ax.get_xlim()[1]-ax.get_xlim()[0])
+               *2*sys.ball.r[0]
+               )
+    """
+    out = sys.run(l_run)
+    mv = out[6]
+    mv_arr[i] = mv[:,0]
+    E = out[8]
+    T = out[7]
     t_el = out[0]
     ax_1.plot(t_el,mv[:,0],'b-',alpha=1/n_run**0.75)
     ax_2.plot(t_el,E,'g-',alpha=1/n_run**0.75)
     ax_3.plot(t_el,T*120,'r-',alpha=1/n_run**0.75)
     if i == 0:
-        mv_all = out[4]
-        E_all = out[6]
-        T_all = out[5]
+        mv_all = out[6]
+        E_all = out[8]
+        T_all = out[7]
         t_el_all = out[0]
     else:
-        mv_all += out[4]
-        E_all += out[6]
-        T_all += out[5]
+        mv_all += out[6]
+        E_all += out[8]
+        T_all += out[7]
         t_el_all += out[0]
 
-ax_1.plot(t_el_all/n_run,mv_all[:,0]/n_run,'b--')
-ax_1.set_title('System X Momentum')
-ax_1.set_xlabel('Elapsed time /ps')
-ax_1.set_ylabel('Momentum /AMU.m/s')
+mv_err = np.std(mv_arr,axis=0)
+
+ax_1.plot(t_el_all/n_run,mv_all[:,0]/n_run,'b--',linewidth=2)
+ax_1.plot(t_el_all/n_run,mv_all[:,0]/n_run+mv_err,'b:',linewidth=2)
+ax_1.plot(t_el_all/n_run,mv_all[:,0]/n_run-mv_err,'b:',linewidth=2)
+ax_1.plot(t_el_all/n_run,np.full(l_run+1,0),'k--',linewidth=2)
+ax_1.set_title('System Total X Momentum')
+ax_1.set_xlabel('Elapsed time $/ps$')
+ax_1.set_ylabel('Momentum $/AMU.nm.ps^{-1}$')
 
 ax_2.plot(t_el_all/n_run,E_all/n_run,'g--')
 ax_2.set_title('System Total Energy')

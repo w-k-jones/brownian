@@ -13,19 +13,19 @@ import brownian_system as brs
 #co-ords fo benoulli tube shape
 in_co = np.array([[0,0],
                   [0.2,0],
-                  [0.4,0.3],
-                  [0.6,0.3],
+                  [0.4,0.2],
+                  [0.6,0.2],
                   [0.8,0],
                   [1,0],
                   [1,1],
                   [0.8,1],
-                  [0.6,0.7],
-                  [0.4,0.7],
+                  [0.6,0.8],
+                  [0.4,0.8],
                   [0.2,1],
-                  [0,1]])*10
+                  [0,1]])
 
 #co-ords for opposing sawtooth
-"""
+
 in_co = np.array([[0,0],
                   [0.2,0.2],
                   [0.2,0],
@@ -52,38 +52,17 @@ in_co = np.array([[0,0],
                   [0,10],
                   [10,10],
                   [10,0]])
-"""
+
 
 wal = brw.wall_shape(in_co)
 #wal.T[:] = 2.5
-wal.pb_ind[5] = 11
-
-bal = brw.balls(50,0.1,1,2,2.5,[1.,0.],wal)
-sys = brs.system(wal,bal)
-
-fig = plt.figure(figsize=(6,6))
-ax = fig.add_subplot(111, aspect='equal', autoscale_on=False,
-                     xlim=(sys.wall.xlim[0]-0.1,sys.wall.xlim[1]+0.1),
-                     ylim=(sys.wall.ylim[0]-0.1,sys.wall.ylim[1]+0.1))
-wal, = ax.plot(sys.wall.co_plt[:,0],sys.wall.co_plt[:,1])
-bal, = ax.plot(sys.ball.p[:,0],sys.ball.p[:,1],'bo',
-               ms=fig.dpi
-               *fig.get_figwidth()/(ax.get_xlim()[1]-ax.get_xlim()[0])
-               *2*sys.ball.r[0]
-               )
-sys.run(10000)
-fig = plt.figure(figsize=(6,6))
-ax = fig.add_subplot(111, aspect='equal', autoscale_on=False,
-                     xlim=(sys.wall.xlim[0]-0.1,sys.wall.xlim[1]+0.1),
-                     ylim=(sys.wall.ylim[0]-0.1,sys.wall.ylim[1]+0.1))
-wal, = ax.plot(sys.wall.co_plt[:,0],sys.wall.co_plt[:,1])
-bal, = ax.plot(sys.ball.p[:,0],sys.ball.p[:,1],'bo',
-               ms=fig.dpi
-               *fig.get_figwidth()/(ax.get_xlim()[1]-ax.get_xlim()[0])
-               *2*sys.ball.r[0]
-               )
-
+wal.pb_ind = np.array([2,3,0,1])
 """
+bal = brw.balls(50,0.1,1,2,2.5,0.,wal)
+sys = brs.system(wal,bal)
+sys.run_plt(100000)
+"""
+
 t_col = np.full([10],np.nan)
 t_col_err = np.full([10],np.nan)
 d_col = np.full([10],np.nan)
@@ -120,4 +99,3 @@ ax2.plot((np.arange(10)+1)*0.05,1/(2**0.5*4*0.25*(np.arange(10)+1)*0.05),'k:', l
 ax2.set_title('Mean Free Path vs Particle Radius')
 ax2.set_xlabel('Particle Radius $/nm$')
 ax2.set_ylabel('Mean Free Path $/nm$')
-"""

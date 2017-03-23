@@ -218,6 +218,7 @@ class wall_shape:
         #If no T then elastic collision
         else: 
             self.velc = np.array([np.abs(self.dv_in),np.abs(self.dv_in)]).reshape([2,-1])
+            self.dv_out = self.dv_in
             self.dv = 2*self.dv_in
         #Change ball velcity
         ball.v[self.i_ball_c] -= self.dv*t_norm

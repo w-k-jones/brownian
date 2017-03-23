@@ -177,12 +177,15 @@ class system:
         print 'Average collision time = ',self.t_col
         print 'Error = ',self.t_col_err
         self.d_col = self.t_col*v_av_all
+        self.d_col_err = self.d_col/t_col_n**0.5
         print 'Mean free path = ', self.d_col
-        print 'Error = ',self.d_col/t_col_n**0.5
+        print 'Error = ',self.d_col_err
         #print 'Wall collision velocities = ', self.vel_distrib
         return self.t_el, \
                self.t_col, \
+               self.t_col_err, \
                self.d_col, \
+               self.d_col_err, \
                self.v_av, \
                self.mv, \
                self.T, \
