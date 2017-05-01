@@ -158,6 +158,8 @@ class system:
         print 'Corner collisions: ',self.c
         v_av_all = np.mean(self.v_av)
         print 'Average particle velocity = ', v_av_all
+        v_err_all = np.std(self.v_av)/n_step**0.5
+        print 'v error = ', v_err_all
         
         #Calculate mean free path and collision time
         t_col_tot = 0
